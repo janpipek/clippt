@@ -1,0 +1,31 @@
+[project]
+name = "clippt"
+version = "0.1.0"
+description = "CLI slideshows in Python and Textual."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.3.1",
+    "polars>=1.38.1",
+    "rich>=14.3.2",
+    "textual>=7.5.0",
+    "textual-fastdatatable>=0.14.0",
+]
+authors = [{name = "Jan Pipek", email = "jan.pipek@gmail.com"}]
+license = "MIT"
+license-file = "LICENSE"
+
+[project.urls]
+homepage = "https://github.com/janpipek/clippt"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ty>=0.0.16",
+]
+
+[tool.ty]
+# ty will automatically discover Python files in your project
