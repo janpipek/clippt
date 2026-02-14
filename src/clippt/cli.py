@@ -21,10 +21,16 @@ from clippt.slides import MarkdownSlide, PythonSlide, ShellSlide, Slide, load
     ),
 )
 @click.option("--disable-footer", is_flag=True, help="Disable footer.")
-def clippt(source: Path, disable_footer: bool):
+@click.option(
+    "--continue", "-c", "continue_", is_flag=True, help="Continue from last slide."
+)
+def clippt(source: Path, disable_footer: bool, continue_: bool):
     slides, title = load_slides(source)
     app = PresentationApp(slides=slides, title=title)
     app.enable_footer = not disable_footer
+    if continue_ and Path(".current_slide").exists():
+        app.slide_index = int(Path(".current_slide").read_text())
+    app.slide_index = min(app.slide_index, len(slides) - 1)
     app.run()
 
 
@@ -34,6 +40,13 @@ def load_slides(source: Path) -> tuple[list[Slide], str]:
             yield load(source.parent / item)
         if isinstance(item, dict):
             content = item.get("content", "")
+            path = (
+                source.parent / Path(path_str)
+                if (path_str := item.get("path"))
+                else None
+            )
+            if not content and path:
+                content = path.read_text(encoding="utf-8")
             title = item.get("title", None)
             alt_screen = item.get("alt_screen", False)
             mode = item.get("mode", "code")
@@ -41,10 +54,14 @@ def load_slides(source: Path) -> tuple[list[Slide], str]:
                 case "markdown":
                     if title:
                         content = f"# {title}\n\n{content}"
-                    yield MarkdownSlide(content)
+                    yield MarkdownSlide(content, path=path)
                 case "python":
                     yield PythonSlide(
-                        source=content, title=title, alt_screen=alt_screen, mode=mode
+                        source=content,
+                        title=title,
+                        alt_screen=alt_screen,
+                        mode=mode,
+                        path=path,
                     )
                 case "shell":
                     yield ShellSlide(
