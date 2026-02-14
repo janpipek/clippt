@@ -1,0 +1,7 @@
+title = "The Zen of Python"
+slides = [
+    "zen_of_python.md",
+    {type = "python", content = """import this""", title="The Zen of Python (Python)"},
+    {type = "shell", content = "python -c 'import this'", title="The Zen of Python (Shell)"},
+    {content = "# The end"}
+]

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Sequence
 
 import click
 from textual.app import App, ComposeResult
@@ -35,8 +36,8 @@ class PresentationApp(App):
 
     document_title: str
 
-    def __init__(self, *, slides: list[str | Path | Slide], title: str, **kwargs):
-        self.slides = self._ensure_load_slides(slides)
+    def __init__(self, *, slides: Sequence[str | Path | Slide], title: str, **kwargs):
+        self.slides = self._ensure_load_slides(list(slides))
         self.document_title = title
         super().__init__(**kwargs)
 
