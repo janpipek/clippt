@@ -13,6 +13,7 @@ import polars as pl
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
+from shellingham import detect_shell
 from textual.app import App
 from textual.containers import VerticalScroll
 from textual.widget import Widget
@@ -173,13 +174,18 @@ class ShellSlide(CodeSlide):
     language: ClassVar[str] = "shell"
     _executed: bool = False
 
+    def __init__(self, source, **kwargs):
+        if not source.strip():
+            _, source = detect_shell()
+        super().__init__(source, **kwargs)
+
     def _load(self):
         self._executed = False
         super()._load()
 
     def _exec(self, app: App):
         return subprocess.run(
-            self.source,
+            self.source.strip(),
             shell=True,
             capture_output=not self.alt_screen,
             text=True,

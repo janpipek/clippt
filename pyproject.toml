@@ -8,12 +8,16 @@ dependencies = [
     "click>=8.3.1",
     "polars>=1.38.1",
     "rich>=14.3.2",
+    "shellingham>=1.5.4",
     "textual>=7.5.0",
     "textual-fastdatatable>=0.14.0",
 ]
 authors = [{name = "Jan Pipek", email = "jan.pipek@gmail.com"}]
 license = "MIT"
 license-file = "LICENSE"
+
+[project.scripts]
+clippt = "clippt.cli:clippt"
 
 [project.urls]
 homepage = "https://github.com/janpipek/clippt"
