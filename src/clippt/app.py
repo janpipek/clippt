@@ -1,8 +1,10 @@
 import os
+import subprocess
 from pathlib import Path
 from typing import Sequence
 
 import click
+import shellingham
 from textual.app import App, ComposeResult
 from textual.containers import Container
 from textual.css.query import QueryError
@@ -26,6 +28,7 @@ class PresentationApp(App):
         ("r", "reload", "Reload"),
         ("home", "home", "First slide"),
         ("end", "end", "Last slide"),
+        ("ctrl+o", "shell", "Shell"),
     ]
 
     CSS = css_tweaks
@@ -120,3 +123,8 @@ class PresentationApp(App):
             Path(".current_slide").write_text(str(self.slide_index))
         except QueryError:
             pass
+
+    def action_shell(self):
+        with self.suspend():
+            _, shell = shellingham.detect_shell()
+            subprocess.run(shell, shell=True, capture_output=False)
