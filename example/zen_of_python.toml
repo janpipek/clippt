@@ -1,8 +1,8 @@
 title = "The Zen of Python"
 slides = [
     "zen_of_python.md",
-    {type = "python", content = """import this""", title="The Zen of Python (in-line Python)"},
+    {type = "python", source = """import this""", title="The Zen of Python (in-line Python)"},
     {type = "python", path="zen_of_python.py", title="The Zen of Python (Python script)"},
-    {type = "shell", content = "python -c 'import this'", title="The Zen of Python (Shell)"},
-    {content = "# The end"}
+    {type = "shell", source = "python -c 'import this'", title="The Zen of Python (Shell)"},
+    {source = "# The end"}
 ]

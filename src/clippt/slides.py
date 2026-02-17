@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, Callable, ClassVar, Literal, Optional
+from typing import Any, Callable, ClassVar, Literal, Optional, Final
 
 import polars as pl
 from rich.console import Console
@@ -50,35 +50,14 @@ class Slide(ABC):
         pass
 
 
-@dataclass
-class CodeSlide(Slide, ABC):
-    """Slide with runnable code from external file or string."""
-
-    language: ClassVar[str]
-    mode: Literal["code", "output"] = "code"
-    alt_screen: bool = False
-    runnable: bool = True
-    wait_for_key: bool = False
+@dataclass(kw_only=True)
+class CodeSlide(Slide):
+    language: str | None = None
     title: Optional[str] = None
     is_title_markdown: bool = False
 
-    _output: Optional[str] = None
-
-    def _load(self):
-        self._output = None
-        super()._load()
-
     def render(self, app) -> Widget:
-        match self.mode:
-            case "code":
-                return self._render_code()
-            case "output":
-                if self.alt_screen:
-                    self._exec_in_alternate_screen(app)
-                    return self._render_code()
-                else:
-                    output = self._exec_inline(app)
-                    return self._render_output(output=output, app=app)
+        return self._render_code()
 
     def _render_code(self) -> VerticalScroll:
         code_lines = []
@@ -101,6 +80,34 @@ class CodeSlide(Slide, ABC):
         else:
             md = Markdown(f"```{self.language}\n{code}\n```")
         return VerticalScroll(md, can_focus=False)
+
+
+@dataclass
+class ExecutableSlide(CodeSlide, ABC):
+    """Slide with runnable code from external file or string."""
+
+    mode: Literal["code", "output"] = "code"
+    alt_screen: bool = False
+    runnable: bool = True
+    wait_for_key: bool = False
+
+    _output: Optional[str] = None
+
+    def _load(self):
+        self._output = None
+        super()._load()
+
+    def render(self, app) -> Widget:
+        match self.mode:
+            case "code":
+                return self._render_code()
+            case "output":
+                if self.alt_screen:
+                    self._exec_in_alternate_screen(app)
+                    return self._render_code()
+                else:
+                    output = self._exec_inline(app)
+                    return self._render_output(output=output, app=app)
 
     def _render_output(self, *, output: str, app: App) -> Widget:
         output_widget = Static(Text.from_ansi(output + "\n"))
@@ -134,8 +141,8 @@ class CodeSlide(Slide, ABC):
             console.clear()
 
 
-class PythonSlide(CodeSlide):
-    language: ClassVar[str] = "python"
+class PythonSlide(ExecutableSlide):
+    language: Final[str] = "python"
 
     def _exec_inline(self, app) -> str:
         f = io.StringIO()
@@ -170,8 +177,8 @@ class PythonSlide(CodeSlide):
         # plt.clear_figure()
 
 
-class ShellSlide(CodeSlide):
-    language: ClassVar[str] = "shell"
+class ShellSlide(ExecutableSlide):
+    language: Final[str] = "shell"
     _executed: bool = False
 
     def __init__(self, source, **kwargs):
@@ -278,12 +285,12 @@ def md(source: str, **kwargs) -> MarkdownSlide:
     return MarkdownSlide(path=None, source=source, **kwargs)
 
 
-def py(source: str, **kwargs) -> CodeSlide:
+def py(source: str, **kwargs) -> ExecutableSlide:
     """Helper function to create a simple Python code slide."""
     return PythonSlide(path=None, source=source, **kwargs)
 
 
-def sh(cmd, **kwargs) -> CodeSlide:
+def sh(cmd, **kwargs) -> ExecutableSlide:
     """Helper function to create a shell command slide."""
     return ShellSlide(source=cmd, **kwargs)
 
@@ -300,5 +307,7 @@ def load(path: str | Path, **kwargs) -> Slide:
             return DataSlide(path=path, **kwargs)
         case ".txt":
             return TextSlide(path=path, **kwargs)
+        case ".json":
+            return CodeSlide(path=path, language="json", **kwargs)
         case _:
             return MarkdownSlide(source=f"Unknown file type: {path}")
