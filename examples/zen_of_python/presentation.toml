@@ -4,5 +4,7 @@ slides = [
     {type = "python", source = """import this""", title="The Zen of Python (in-line Python)"},
     {type = "python", path="zen_of_python.py", title="The Zen of Python (Python script)"},
     {type = "shell", source = "python -c 'import this'", title="The Zen of Python (Shell)"},
-    {source = "# The end"}
+    {type = "code", path="zen_of_python.toml", title="This presentation"},
+    {source = "# The end"},
+    "../.pre-commit-config.yaml"
 ]

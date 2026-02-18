@@ -1,5 +1,0 @@
-slides = [
-    {title = "Shell"},
-    {title = "Back to shell...", type = "shell", alt_screen = true}
-    {title = "...and end"}
-]
