@@ -8,6 +8,7 @@ from typing_extensions import Iterable
 
 from clippt.app import PresentationApp
 from clippt.slides import MarkdownSlide, PythonSlide, ShellSlide, Slide, load
+from clippt.presentation import load_presentation
 
 
 @click.command()
@@ -74,12 +75,9 @@ def load_slides(source: Path) -> tuple[list[Slide], str]:
         case ".md" | ".markdown" | ".csv" | ".py" | ".pq" | ".parquet":
             return [load(source)], source.stem
         case ".toml":
-            with source.open("rb") as f:
-                data = tomllib.load(f)
-            slides = list(
-                chain(*(_load_single(item) for item in data.get("slides", [])))
-            )
-            return slides, data.get("title", source.stem)
+            presentation = load_presentation(source)
+            slides = list(presentation.create_slides())
+            return slides, presentation.title or source.stem
         case _:
             raise ValueError(f"Unsupported file type: {source.suffix}")
 

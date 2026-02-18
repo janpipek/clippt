@@ -9,12 +9,14 @@ from pydantic import BaseModel, Field
 
 class SlideDescription(BaseModel):
     type: Literal["python", "shell", "markdown", "code"] | None = None
-    """Path relative to the presentation."""
-
     source: str | None = None
     path: Path | None = None
+    """Path relative to the presentation."""
+
     title: str | None = None
     language: str | None = None
+    """Language to be used for syntax highlighting."""
+
     alt_screen: bool | None = None
     mode: Literal["code", "output"] | None = None
     runnable: bool | None = None
@@ -28,7 +30,7 @@ class Presentation(BaseModel):
     def _get_full_slide_path(self, path: Path) -> Path:
         if path.is_absolute():
             return path
-        return self.pwd / path
+        return (self.pwd or Path(".")) / path
 
     def create_slides(self) -> Iterable[Slide]:
         for s in self.slides:

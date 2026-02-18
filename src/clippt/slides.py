@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, Callable, ClassVar, Literal, Optional, Final
+from typing import Any, Callable, Literal, Optional, Final
 
 import polars as pl
 from rich.console import Console
@@ -307,7 +307,20 @@ def load(path: str | Path, **kwargs) -> Slide:
             return DataSlide(path=path, **kwargs)
         case ".txt":
             return TextSlide(path=path, **kwargs)
-        case ".json":
-            return CodeSlide(path=path, language="json", **kwargs)
-        case _:
-            return MarkdownSlide(source=f"Unknown file type: {path}")
+        case other:
+            language = kwargs.pop(
+                "language",
+                EXT_LANGUAGE_MAPPING.get(other, "text")
+            )
+            return CodeSlide(path=path, language=language, **kwargs)
+
+
+EXT_LANGUAGE_MAPPING = {
+    ".json": "json",
+    ".toml": "toml",
+    ".yaml": "yaml",
+    ".rs": "rust",
+    ".scm": "scheme",
+    ".go": "go",
+}
+
