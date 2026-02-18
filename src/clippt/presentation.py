@@ -51,7 +51,7 @@ class Presentation(BaseModel):
                         case "shell":
                             yield ShellSlide(**s.model_dump(exclude_none=True, exclude={"type"}))
                         case "markdown" | None:
-                            yield MarkdownSlide(**s.model_dump(exclude_none=True, exclude={"type"}))
+                            yield MarkdownSlide(**s.model_dump(exclude_none=True, exclude={"type", "title", "language"}))
                         case "code":
                             yield CodeSlide(**s.model_dump(exclude_none=True, exclude={"type"}))
 
