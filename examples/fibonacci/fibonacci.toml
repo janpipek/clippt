@@ -1,0 +1,15 @@
+title = "Fibonacci in Many Languages"
+
+slides = [
+    {source = "# Fibonacci\n\nA classic recursive implementation in many languages."},
+    {path = "fibonacci.c",        language = "c",          title = "C"},
+    {path = "fibonacci.go",       language = "go",         title = "Go"},
+    {path = "fibonacci.rs",       language = "rust",       title = "Rust"},
+    {path = "fibonacci.scm",      language = "scheme",     title = "Scheme"},
+    {path = "fibonacci.py",       language = "python",     title = "Python"},
+    {path = "fibonacci.js",       language = "javascript", title = "JavaScript"},
+    {path = "fibonacci.hs",       language = "haskell",    title = "Haskell"},
+    {path = "fibonacci.rb",       language = "ruby",       title = "Ruby"},
+    {path = "Fibonacci.java",     language = "java",       title = "Java"},
+    {path = "fibonacci.lua",      language = "lua",        title = "Lua"},
+]
