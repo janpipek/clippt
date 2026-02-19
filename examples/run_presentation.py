@@ -10,7 +10,7 @@ slides = [
     {source = "import this", type = "python" },
 ]
 """
-ß
+
 if __name__ == "__main__":
     presentation = load_presentation(StringIO(CONTENT))
     slides = list(presentation.create_slides())
