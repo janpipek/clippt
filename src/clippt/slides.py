@@ -308,10 +308,7 @@ def load(path: str | Path, **kwargs) -> Slide:
         case ".txt":
             return TextSlide(path=path, **kwargs)
         case other:
-            language = kwargs.pop(
-                "language",
-                EXT_LANGUAGE_MAPPING.get(other, "text")
-            )
+            language = kwargs.pop("language", EXT_LANGUAGE_MAPPING.get(other, "text"))
             return CodeSlide(path=path, language=language, **kwargs)
 
 
@@ -323,4 +320,3 @@ EXT_LANGUAGE_MAPPING = {
     ".scm": "scheme",
     ".go": "go",
 }
-

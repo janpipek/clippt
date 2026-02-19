@@ -28,6 +28,7 @@ class SlideDescription(BaseModel):
 
 class Presentation(BaseModel):
     """Description of a presentation."""
+
     pwd: Path | None = None
     title: str | None
     slides: list[SlideDescription | str] = Field(default_factory=list)
