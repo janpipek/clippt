@@ -3,13 +3,13 @@ import subprocess
 import traceback
 from abc import ABC, abstractmethod
 from contextlib import redirect_stdout
-from dataclasses import dataclass, field
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
 from typing import Any, Callable, Literal, Optional, Final
 
 import polars as pl
+from pydantic import BaseModel, model_validator
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -24,16 +24,17 @@ from textual_fastdatatable.backend import PolarsBackend
 from clippt.utils import wait_for_key
 
 
-@dataclass()
-class Slide(ABC):
-    path: Optional[Path] = field(default=None, kw_only=True)
+class Slide(ABC, BaseModel):
+    path: Path | None = None
     source: str = ""
     runnable: bool = False
 
-    def __post_init__(self):
+    @model_validator(mode="after")
+    def _load_on_start(self):
         self._load()
+        return self
 
-    def _load(self) -> None:
+    def _load(self):
         if self.path:
             try:
                 self.source = self.path.read_text(encoding="utf-8")
@@ -50,7 +51,6 @@ class Slide(ABC):
         pass
 
 
-@dataclass(kw_only=True)
 class CodeSlide(Slide):
     language: str | None = None
     title: Optional[str] = None
@@ -82,7 +82,6 @@ class CodeSlide(Slide):
         return VerticalScroll(md, can_focus=False)
 
 
-@dataclass
 class ExecutableSlide(CodeSlide, ABC):
     """Slide with runnable code from external file or string."""
 
@@ -91,7 +90,7 @@ class ExecutableSlide(CodeSlide, ABC):
     runnable: bool = True
     wait_for_key: bool = False
 
-    _output: Optional[str] = None
+    _output: str | None = None
 
     def _load(self):
         self._output = None
@@ -181,10 +180,9 @@ class ShellSlide(ExecutableSlide):
     language: Final[str] = "shell"
     _executed: bool = False
 
-    def __init__(self, source, **kwargs):
-        if not source.strip():
-            _, source = detect_shell()
-        super().__init__(source, **kwargs)
+    def __post_init__(self, **kwargs):
+        if not self.source.strip():
+            _, self.source = detect_shell()
 
     def _load(self):
         self._executed = False
@@ -209,7 +207,6 @@ class ShellSlide(ExecutableSlide):
         return self._output or "Error"
 
 
-@dataclass
 class MarkdownSlide(Slide):
     classes: Optional[str] = None
 
@@ -219,7 +216,6 @@ class MarkdownSlide(Slide):
         return Markdown(dedent(self.source), classes=self.classes)
 
 
-@dataclass
 class TextSlide(Slide):
     title: Optional[str] = None
 
@@ -231,13 +227,12 @@ class TextSlide(Slide):
         return VerticalScroll(*widgets, can_focus=False)
 
 
-@dataclass
 class FuncSlide(Slide):
     """Any slide created from a function."""
 
-    f: Callable[[App], Markdown | Text | str] = field(kw_only=True)
-    source = ""  # ignored
-    path = None  # ignored
+    f: Callable[[App], Markdown | Text | str]
+    source: str = ""  # ignored
+    path: None = None  # ignored
 
     def render(self, app: App) -> Widget:
         rendered = self.f(app)
@@ -251,9 +246,11 @@ class FuncSlide(Slide):
             raise NotImplementedError()
 
 
-@dataclass
 class DataSlide(Slide):
     data: Optional[pl.DataFrame] = None
+
+    class Config:
+        arbitrary_types_allowed = True
 
     def render(self, app: App) -> Widget:
         if self.data is not None:

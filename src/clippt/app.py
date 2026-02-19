@@ -118,6 +118,7 @@ class PresentationApp(App):
                 return
             container_widget.remove_children()
             # No need to refresh() - mounting will trigger automatic refresh
+            self.log("Rendering slide", self.current_slide.model_dump())
             content_widget = self.slides[self.slide_index].render(app=self)
             container_widget.mount(content_widget)
             Path(".current_slide").write_text(str(self.slide_index))
