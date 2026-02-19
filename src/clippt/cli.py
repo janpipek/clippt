@@ -2,6 +2,8 @@ from pathlib import Path
 
 import click
 
+import os
+
 from clippt.app import PresentationApp
 from clippt.slides import Slide, load
 from clippt.presentation import load_presentation
@@ -21,12 +23,17 @@ from clippt.presentation import load_presentation
 @click.option(
     "--continue", "-c", "continue_", is_flag=True, help="Continue from last slide."
 )
-def clippt(source: Path, disable_footer: bool, continue_: bool):
+@click.option(
+    "--dev", is_flag=True, help="Enable textual dev tools."
+)
+def clippt(*, source: Path, disable_footer: bool, continue_: bool, output: Path, dev: bool):
     """Run a presentation in the command-line."""
 
     slides, title = load_slides(source)
     app = PresentationApp(slides=slides, title=title)
     app.enable_footer = not disable_footer
+    if dev:
+        os.environ["TEXTUAL"] = "debug,devtools"
     if continue_ and Path(".current_slide").exists():
         app.slide_index = int(Path(".current_slide").read_text())
     app.slide_index = min(app.slide_index, len(slides) - 1)

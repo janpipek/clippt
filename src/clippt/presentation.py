@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 
 
 class SlideDescription(BaseModel):
+    """Description of a slide."""
+
     type: Literal["python", "shell", "markdown", "code"] | None = None
     source: str | None = None
     path: Path | None = None
@@ -23,6 +25,7 @@ class SlideDescription(BaseModel):
 
 
 class Presentation(BaseModel):
+    """Description of a presentation."""
     pwd: Path | None = None
     title: str | None
     slides: list[SlideDescription | str] = Field(default_factory=list)
@@ -68,4 +71,3 @@ def load_presentation(path: Path | str) -> Presentation:
             return Presentation.model_validate(data | {"pwd": pwd})
         case _:
             raise ValueError(f"Cannot parse {path}")
-
