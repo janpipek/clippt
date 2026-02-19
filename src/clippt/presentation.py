@@ -1,10 +1,12 @@
-from pathlib import Path
-import tomllib
+import io
 import json
+import tomllib
+from pathlib import Path
 from typing import Iterable, Literal
-from clippt.slides import Slide, load, PythonSlide, ShellSlide, MarkdownSlide, CodeSlide
 
 from pydantic import BaseModel, Field
+
+from clippt.slides import CodeSlide, MarkdownSlide, PythonSlide, ShellSlide, Slide, load
 
 
 class SlideDescription(BaseModel):
@@ -45,29 +47,47 @@ class Presentation(BaseModel):
                 if s.path:
                     yield load(
                         path=self._get_full_slide_path(s.path),
-                        **s.model_dump(exclude_none=True, exclude={"type", "path"})
+                        **s.model_dump(exclude_none=True, exclude={"type", "path"}),
                     )
                 else:
                     match s.type:
                         case "python":
-                            yield PythonSlide(**s.model_dump(exclude_none=True, exclude={"type"}))
+                            yield PythonSlide(
+                                **s.model_dump(exclude_none=True, exclude={"type"})
+                            )
                         case "shell":
-                            yield ShellSlide(**s.model_dump(exclude_none=True, exclude={"type"}))
+                            yield ShellSlide(
+                                **s.model_dump(exclude_none=True, exclude={"type"})
+                            )
                         case "markdown" | None:
-                            yield MarkdownSlide(**s.model_dump(exclude_none=True, exclude={"type", "title", "language"}))
+                            yield MarkdownSlide(
+                                **s.model_dump(
+                                    exclude_none=True,
+                                    exclude={"type", "title", "language"},
+                                )
+                            )
                         case "code":
-                            yield CodeSlide(**s.model_dump(exclude_none=True, exclude={"type"}))
+                            yield CodeSlide(
+                                **s.model_dump(exclude_none=True, exclude={"type"})
+                            )
 
 
-def load_presentation(path: Path | str) -> Presentation:
-    path = Path(path)
-    pwd = path.parent
-    match path.suffix.lower():
-        case ".toml":
-            data = tomllib.loads(path.read_text())
-            return Presentation.model_validate(data | {"pwd": pwd})
-        case ".json":
-            data = json.loads(path.read_text())
-            return Presentation.model_validate(data | {"pwd": pwd})
-        case _:
-            raise ValueError(f"Cannot parse {path}")
+def load_presentation(path_or_file: Path | str | io.TextIOBase, /) -> Presentation:
+    if isinstance(path_or_file, io.TextIOBase):
+        content = path_or_file.read()
+        pwd = Path(".")
+        data = tomllib.loads(content)
+        return Presentation.model_validate(data | {"pwd": pwd})
+    else:
+        path = Path(path_or_file)
+        pwd = path.parent
+
+        match path.suffix.lower():
+            case ".toml":
+                data = tomllib.loads(path.read_text())
+                return Presentation.model_validate(data | {"pwd": pwd})
+            case ".json":
+                data = json.loads(path.read_text())
+                return Presentation.model_validate(data | {"pwd": pwd})
+            case _:
+                raise ValueError(f"Cannot parse {path}")
