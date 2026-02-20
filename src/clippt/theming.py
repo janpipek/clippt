@@ -38,7 +38,19 @@ css_tweaks = """
     }
     MarkdownFence {
         background: #fff9e4; /* Light yellow */
-        margin: 1;  
+        margin: 1;
         max-height: 500;
+    }
+    Static.output {
+        background: #ccccff;
+        margin: 0 3;
+        max-height: 500;
+        padding: 1 2;
+    }
+    Static.error {
+        background: #ffcccc;
+        margin: 0 3;
+        max-height: 500;
+        padding: 1 2;
     }
  """

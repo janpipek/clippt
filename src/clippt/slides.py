@@ -89,6 +89,7 @@ class ExecutableSlide(CodeSlide, ABC):
     alt_screen: bool = False
     runnable: bool = True
     wait_for_key: bool = False
+    is_error: bool = False
 
     _output: str | None = None
 
@@ -109,7 +110,8 @@ class ExecutableSlide(CodeSlide, ABC):
                     return self._render_output(output=output, app=app)
 
     def _render_output(self, *, output: str, app: App) -> Widget:
-        output_widget = Static(Text.from_ansi(output + "\n"))
+        classes = "error" if self.is_error else "output"
+        output_widget = Static(Text.from_ansi(output + "\n"), classes=classes)
         if self.title:
             if self.is_title_markdown:
                 return VerticalScroll(
@@ -121,10 +123,12 @@ class ExecutableSlide(CodeSlide, ABC):
         return VerticalScroll(output_widget, can_focus=False)
 
     @abstractmethod
-    def _exec_inline(self, app: App) -> str: ...
+    def _exec_inline(self, app: App) -> str:
+        """Execute the code and return the output."""
 
     @abstractmethod
-    def _exec(self, app: App): ...
+    def _exec(self, app: App):
+        """Execute the code."""
 
     def run(self):
         self.mode = "output" if self.mode == "code" else "code"
@@ -152,8 +156,6 @@ class PythonSlide(ExecutableSlide):
 
             try:
                 self._exec(app=app)
-
-                # return "\n".join(" " + line.rstrip() for line in output.splitlines())
                 return f.getvalue()
             except Exception as ex:
                 out = StringIO()
@@ -163,14 +165,20 @@ class PythonSlide(ExecutableSlide):
                 return out.getvalue()
 
     def _exec(self, app: App) -> None:
-        exec(
-            self.source,
-            globals=globals()
-            | {
-                "WIDTH": app.size.width - (10 if self.title else 4),
-                "HEIGHT": app.size.height - 2,
-            },
-        )
+        self.is_error = False
+        try:
+            exec(
+                self.source,
+                globals=globals()
+                | {
+                    "WIDTH": app.size.width - (10 if self.title else 4),
+                    "HEIGHT": app.size.height - 2,
+                },
+            )
+        except Exception:
+            self.is_error = True
+            raise
+
         # TODO: Rethink? Remnant of old project, 99% not needed.
         # import plotext as plt
         # plt.clear_figure()
@@ -203,8 +211,9 @@ class ShellSlide(ExecutableSlide):
                 p = self._exec(app)
                 self._output = p.stdout or p.stderr
                 # TODO: Maybe we should raise if it fails and handle it elsewhere
+                self.is_error = (p.returncode != 0)
                 self._executed = True
-        return self._output or "Error"
+        return self._output
 
 
 class MarkdownSlide(Slide):
