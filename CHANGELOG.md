@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.5] - 2026-02-20
+
+### Added
+- `execute_before` field on slides — run setup code before the main slide execution
+- `Presentation.shell_cwd` — set a working directory for shell commands at the presentation level
+- `--dev` flag in CLI for development/hot-reload mode
+
+### Changed
+- Slides are now Pydantic models
+- Improved rendering of output and errors
+
 ## [0.1.4] - 2026-02-20
 
 ### Added
