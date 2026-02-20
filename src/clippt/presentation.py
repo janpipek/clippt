@@ -6,7 +6,7 @@ from typing import Iterable, Literal
 
 from pydantic import BaseModel, Field
 
-from clippt.slides import CodeSlide, MarkdownSlide, PythonSlide, ShellSlide, Slide, load
+from clippt.slides import CodeSlide, MarkdownSlide, PythonSlide, ShellSlide, Slide, load, ErrorSlide
 
 
 class SlideDescription(BaseModel):
@@ -24,8 +24,10 @@ class SlideDescription(BaseModel):
     alt_screen: bool | None = None
     mode: Literal["code", "output"] | None = None
     runnable: bool | None = None
+    wait_for_key: bool | None = None
 
     classes: list[str] | None = None
+    cwd: Path | None = None
 
 
 class Presentation(BaseModel):
@@ -43,9 +45,11 @@ class Presentation(BaseModel):
     def create_slides(self) -> Iterable[Slide]:
         for s in self.slides:
             if isinstance(s, str):
-                slide_path = Path(s)
+                slide_path=self._get_full_slide_path(Path(s))
                 if slide_path.exists():
-                    yield load(self._get_full_slide_path(slide_path))
+                    yield load(slide_path)
+                else:
+                    yield ErrorSlide(source=f"Slide not found: {slide_path}")
             elif isinstance(s, SlideDescription):
                 if s.path:
                     yield load(

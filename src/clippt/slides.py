@@ -187,6 +187,7 @@ class PythonSlide(ExecutableSlide):
 class ShellSlide(ExecutableSlide):
     language: Final[str] = "shell"
     _executed: bool = False
+    cwd: Path | None = None
 
     def __post_init__(self, **kwargs):
         if not self.source.strip():
@@ -203,6 +204,7 @@ class ShellSlide(ExecutableSlide):
             capture_output=not self.alt_screen,
             text=True,
             encoding="utf-8",
+            cwd=self.cwd
         )
 
     def _exec_inline(self, app) -> str:
@@ -283,6 +285,10 @@ class DataSlide(Slide):
                 case _:
                     raise NotImplementedError()
 
+
+class ErrorSlide(Slide):
+    def render(self, app: App) -> Widget:
+        return Static(Text.from_ansi(self.source), classes="error")
 
 def slide(f: Callable[[App], Any]) -> FuncSlide:
     """Decorator to create a markdown slide from a function."""
