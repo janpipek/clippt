@@ -6,7 +6,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, Callable, Literal, Optional, Final
+from typing import Any, Callable, Final, Literal, Optional
 
 import polars as pl
 from pydantic import BaseModel, model_validator
@@ -28,6 +28,9 @@ class Slide(ABC, BaseModel):
     path: Path | None = None
     source: str = ""
     runnable: bool = False
+    execute_before: str | None = None
+    """Shell script to execute before the slide is rendered."""
+    cwd: Path | None = None
 
     @model_validator(mode="after")
     def _load_on_start(self):
@@ -44,8 +47,20 @@ class Slide(ABC, BaseModel):
     def reload(self):
         self._load()
 
+    def render(self, app: App) -> Widget:
+        if self.execute_before:
+            subprocess.run(
+                self.execute_before.strip(),
+                shell=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=self.cwd,
+            )
+        return self._render_impl(app)
+
     @abstractmethod
-    def render(self, app: App) -> Widget: ...
+    def _render_impl(self, app: App) -> Widget: ...
 
     def run(self) -> None:
         pass
@@ -56,10 +71,12 @@ class CodeSlide(Slide):
     title: Optional[str] = None
     is_title_markdown: bool = False
 
-    def render(self, app) -> Widget:
+    def _render_impl(self, app) -> Widget:
         return self._render_code()
 
     def _render_code(self) -> VerticalScroll:
+        if self.path:
+            self.reload()
         code_lines = []
         for line in self.source.splitlines():
             line = line.rstrip()
@@ -97,7 +114,7 @@ class ExecutableSlide(CodeSlide, ABC):
         self._output = None
         super()._load()
 
-    def render(self, app) -> Widget:
+    def _render_impl(self, app) -> Widget:
         match self.mode:
             case "code":
                 return self._render_code()
@@ -187,7 +204,6 @@ class PythonSlide(ExecutableSlide):
 class ShellSlide(ExecutableSlide):
     language: Final[str] = "shell"
     _executed: bool = False
-    cwd: Path | None = None
 
     def __post_init__(self, **kwargs):
         if not self.source.strip():
@@ -204,7 +220,7 @@ class ShellSlide(ExecutableSlide):
             capture_output=not self.alt_screen,
             text=True,
             encoding="utf-8",
-            cwd=self.cwd
+            cwd=self.cwd,
         )
 
     def _exec_inline(self, app) -> str:
@@ -213,7 +229,7 @@ class ShellSlide(ExecutableSlide):
                 p = self._exec(app)
                 self._output = p.stdout or p.stderr
                 # TODO: Maybe we should raise if it fails and handle it elsewhere
-                self.is_error = (p.returncode != 0)
+                self.is_error = p.returncode != 0
                 self._executed = True
         return self._output
 
@@ -223,17 +239,14 @@ class MarkdownSlide(Slide):
 
     """Markdown slide with source from external file or string."""
 
-    def render(self, app: App) -> Markdown:
-        return Markdown(
-            dedent(self.source),
-            classes=" ".join(self.classes or [])
-        )
+    def _render_impl(self, app: App) -> Markdown:
+        return Markdown(dedent(self.source), classes=" ".join(self.classes or []))
 
 
 class TextSlide(Slide):
     title: Optional[str] = None
 
-    def render(self, app: App) -> VerticalScroll:
+    def _render_impl(self, app: App) -> VerticalScroll:
         widgets = []
         if self.title:
             widgets.append(Markdown(f"# {self.title}"))
@@ -248,7 +261,7 @@ class FuncSlide(Slide):
     source: str = ""  # ignored
     path: None = None  # ignored
 
-    def render(self, app: App) -> Widget:
+    def _render_impl(self, app: App) -> Widget:
         rendered = self.f(app)
         if isinstance(rendered, Widget):
             return rendered
@@ -266,7 +279,7 @@ class DataSlide(Slide):
     class Config:
         arbitrary_types_allowed = True
 
-    def render(self, app: App) -> Widget:
+    def _render_impl(self, app: App) -> Widget:
         if self.data is not None:
             backend = PolarsBackend.from_dataframe(self.data)
             dt = DataTable(backend=backend, zebra_stripes=True, show_cursor=False)
@@ -287,8 +300,9 @@ class DataSlide(Slide):
 
 
 class ErrorSlide(Slide):
-    def render(self, app: App) -> Widget:
+    def _render_impl(self, app: App) -> Widget:
         return Static(Text.from_ansi(self.source), classes="error")
+
 
 def slide(f: Callable[[App], Any]) -> FuncSlide:
     """Decorator to create a markdown slide from a function."""

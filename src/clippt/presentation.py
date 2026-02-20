@@ -6,11 +6,22 @@ from typing import Iterable, Literal
 
 from pydantic import BaseModel, Field
 
-from clippt.slides import CodeSlide, MarkdownSlide, PythonSlide, ShellSlide, Slide, load, ErrorSlide
+from clippt.slides import (
+    CodeSlide,
+    ErrorSlide,
+    MarkdownSlide,
+    PythonSlide,
+    ShellSlide,
+    Slide,
+    load,
+)
 
 
 class SlideDescription(BaseModel):
     """Description of a slide."""
+
+    class Config:
+        extra = "forbid"
 
     type: Literal["python", "shell", "markdown", "code"] | None = None
     source: str | None = None
@@ -28,38 +39,50 @@ class SlideDescription(BaseModel):
 
     classes: list[str] | None = None
     cwd: Path | None = None
+    execute_before: str | None = None
 
 
 class Presentation(BaseModel):
     """Description of a presentation."""
 
-    shell_cwd: Path | None = None
-    pwd: Path | None = None
+    slide_base_path: Path | None = Field(None, description="Base directory for slides")
+    shell_cwd: Path | None = Field(
+        None,
+        description="Base directory for shell commands, relative to slide_base_path",
+    )
+
     title: str | None = None
     slides: list[SlideDescription | str] = Field(default_factory=list)
 
     def _get_full_slide_path(self, path: Path) -> Path:
         if path.is_absolute():
             return path
-        return (self.pwd or Path(".")) / path
+        return (self.slide_base_path or Path(".")) / path
 
     @property
     def full_shell_cwd(self) -> Path | None:
-        return self._get_full_slide_path(self.shell_cwd) if self.shell_cwd else self.pwd
+        return (
+            self._get_full_slide_path(self.shell_cwd)
+            if self.shell_cwd
+            else self.slide_base_path
+        )
 
     def create_slides(self) -> Iterable[Slide]:
         for s in self.slides:
             if isinstance(s, str):
-                slide_path=self._get_full_slide_path(Path(s))
+                slide_path = self._get_full_slide_path(Path(s))
                 if slide_path.exists():
-                    yield load(slide_path)
+                    yield load(slide_path, cwd=self.full_shell_cwd)
                 else:
                     yield ErrorSlide(source=f"Slide not found: {slide_path}")
             elif isinstance(s, SlideDescription):
+                cwd = self._get_full_slide_path(s.cwd) if s.cwd else self.full_shell_cwd
                 if s.path:
                     yield load(
                         path=self._get_full_slide_path(s.path),
-                        **s.model_dump(exclude_none=True, exclude={"type", "path"}),
+                        **s.model_dump(
+                            exclude_none=True, exclude={"type", "path", "cwd"}
+                        ),
                     )
                 else:
                     match s.type:
@@ -68,10 +91,11 @@ class Presentation(BaseModel):
                                 **s.model_dump(exclude_none=True, exclude={"type"})
                             )
                         case "shell":
-                            cwd = self._get_full_slide_path(s.cwd) if s.cwd else self.full_shell_cwd
                             yield ShellSlide(
                                 cwd=cwd,
-                                **s.model_dump(exclude_none=True, exclude={"type", "cwd"})
+                                **s.model_dump(
+                                    exclude_none=True, exclude={"type", "cwd"}
+                                ),
                             )
                         case "markdown" | None:
                             yield MarkdownSlide(
