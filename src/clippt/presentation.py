@@ -25,6 +25,8 @@ class SlideDescription(BaseModel):
     mode: Literal["code", "output"] | None = None
     runnable: bool | None = None
 
+    classes: list[str] | None = None
+
 
 class Presentation(BaseModel):
     """Description of a presentation."""

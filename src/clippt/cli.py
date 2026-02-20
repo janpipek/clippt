@@ -2,8 +2,6 @@ from pathlib import Path
 
 import click
 
-import os
-
 from clippt.app import PresentationApp
 from clippt.slides import Slide, load
 from clippt.presentation import load_presentation

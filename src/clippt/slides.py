@@ -217,12 +217,15 @@ class ShellSlide(ExecutableSlide):
 
 
 class MarkdownSlide(Slide):
-    classes: Optional[str] = None
+    classes: list[str] | None = None
 
     """Markdown slide with source from external file or string."""
 
     def render(self, app: App) -> Markdown:
-        return Markdown(dedent(self.source), classes=self.classes)
+        return Markdown(
+            dedent(self.source),
+            classes=" ".join(self.classes or [])
+        )
 
 
 class TextSlide(Slide):
