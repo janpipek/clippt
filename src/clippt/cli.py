@@ -3,8 +3,7 @@ from pathlib import Path
 import click
 
 from clippt.app import PresentationApp
-from clippt.slides import Slide, load
-from clippt.presentation import load_presentation
+from clippt.presentation import load_presentation, Presentation
 
 
 @click.command()
@@ -24,8 +23,9 @@ from clippt.presentation import load_presentation
 def clippt(*, source: Path, disable_footer: bool, continue_: bool):
     """Run a presentation in the command-line."""
 
-    slides, title = load_slides(source)
-    app = PresentationApp(slides=slides, title=title)
+    presentation = create_presentation(source)
+    slides = list(presentation.create_slides())
+    app = PresentationApp(slides=slides, title=presentation.title or "", shell_cwd=presentation.shell_cwd)
     app.enable_footer = not disable_footer
     if continue_ and Path(".current_slide").exists():
         app.slide_index = int(Path(".current_slide").read_text())
@@ -33,7 +33,7 @@ def clippt(*, source: Path, disable_footer: bool, continue_: bool):
     app.run()
 
 
-def load_slides(source: Path) -> tuple[list[Slide], str]:
+def create_presentation(source: Path) -> Presentation:
     if source.is_dir():
         if (source / "presentation.toml").exists():
             source = source / "presentation.toml"
@@ -42,11 +42,10 @@ def load_slides(source: Path) -> tuple[list[Slide], str]:
 
     match source.suffix.lower():
         case ".md" | ".markdown" | ".csv" | ".py" | ".pq" | ".parquet":
-            return [load(source)], source.stem
+            return Presentation(slides=[str(source)])
         case ".toml":
             presentation = load_presentation(source)
-            slides = list(presentation.create_slides())
-            return slides, presentation.title or source.stem
+            return presentation
         case _:
             raise ValueError(f"Unsupported file type: {source.suffix}")
 

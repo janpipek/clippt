@@ -33,14 +33,19 @@ class SlideDescription(BaseModel):
 class Presentation(BaseModel):
     """Description of a presentation."""
 
+    shell_cwd: Path | None = None
     pwd: Path | None = None
-    title: str | None
+    title: str | None = None
     slides: list[SlideDescription | str] = Field(default_factory=list)
 
     def _get_full_slide_path(self, path: Path) -> Path:
         if path.is_absolute():
             return path
         return (self.pwd or Path(".")) / path
+
+    @property
+    def full_shell_cwd(self) -> Path | None:
+        return self._get_full_slide_path(self.shell_cwd) if self.shell_cwd else self.pwd
 
     def create_slides(self) -> Iterable[Slide]:
         for s in self.slides:
@@ -63,8 +68,10 @@ class Presentation(BaseModel):
                                 **s.model_dump(exclude_none=True, exclude={"type"})
                             )
                         case "shell":
+                            cwd = self._get_full_slide_path(s.cwd) if s.cwd else self.full_shell_cwd
                             yield ShellSlide(
-                                **s.model_dump(exclude_none=True, exclude={"type"})
+                                cwd=cwd,
+                                **s.model_dump(exclude_none=True, exclude={"type", "cwd"})
                             )
                         case "markdown" | None:
                             yield MarkdownSlide(

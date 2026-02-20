@@ -39,9 +39,12 @@ class PresentationApp(App):
 
     document_title: str
 
-    def __init__(self, *, slides: Sequence[str | Path | Slide], title: str, **kwargs):
+    shell_cwd: Path | None = None
+
+    def __init__(self, *, slides: Sequence[str | Path | Slide], title: str, shell_cwd: Path | None = None, **kwargs):
         self.slides = self._ensure_load_slides(list(slides))
         self.document_title = title
+        self.shell_cwd = shell_cwd
         super().__init__(**kwargs)
 
     def _ensure_load_slides(self, slides: list[Slide | str | Path]) -> list[Slide]:
@@ -128,4 +131,4 @@ class PresentationApp(App):
     def action_shell(self):
         with self.suspend():
             _, shell = shellingham.detect_shell()
-            subprocess.run(shell, shell=True, capture_output=False)
+            subprocess.run(shell, shell=True, capture_output=False, cwd=self.shell_cwd)
