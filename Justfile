@@ -6,3 +6,12 @@ example-fibonacci:
 
 type-check:
     uv run ty check src
+
+clean:
+    rm -rf dist
+
+build: clean
+    uv build
+
+publish: build
+    uv publish
