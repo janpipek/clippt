@@ -1,4 +1,5 @@
 import io
+import os
 import subprocess
 import traceback
 from abc import ABC, abstractmethod
@@ -213,7 +214,10 @@ class ShellSlide(ExecutableSlide):
         self._executed = False
         super()._load()
 
-    def _exec(self, app: App):
+    def _exec(self, app: App, columns: int | None = None):
+        env = None
+        if columns is not None:
+            env = {**os.environ, "COLUMNS": str(columns)}
         return subprocess.run(
             self.source.strip(),
             shell=True,
@@ -221,12 +225,16 @@ class ShellSlide(ExecutableSlide):
             text=True,
             encoding="utf-8",
             cwd=self.cwd,
+            env=env,
         )
 
     def _exec_inline(self, app) -> str:
         if not self._executed:
+            # margin: 0 3 adds 6 chars of horizontal chrome; subtract so the
+            # command formats output to the exact displayable width.
+            columns = app.size.width - 10
             with app.suspend():
-                p = self._exec(app)
+                p = self._exec(app, columns=columns)
                 self._output = p.stdout or p.stderr
                 # TODO: Maybe we should raise if it fails and handle it elsewhere
                 self.is_error = p.returncode != 0
