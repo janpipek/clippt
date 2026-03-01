@@ -7,7 +7,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, Callable, Final, Literal, Optional
+from typing import Callable, Final, Literal, Optional
 
 import polars as pl
 from pydantic import BaseModel, model_validator
@@ -113,7 +113,7 @@ class ExecutableSlide(CodeSlide, ABC):
     languages.
     """
 
-    mode: Literal["code", "output"] = "code"
+    display_mode: Literal["code", "output"] = "code"
     """What is displayed - code or output."""
 
     alt_screen: bool = False
@@ -133,7 +133,7 @@ class ExecutableSlide(CodeSlide, ABC):
         super()._load()
 
     def _render_impl(self, app) -> Widget:
-        match self.mode:
+        match self.display_mode:
             case "code":
                 return self._render_code()
             case "output":
@@ -166,7 +166,7 @@ class ExecutableSlide(CodeSlide, ABC):
         """Execute the code."""
 
     def run(self):
-        self.mode = "output" if self.mode == "code" else "code"
+        self.display_mode = "output" if self.display_mode == "code" else "code"
 
     def _exec_in_alternate_screen(self, app):
         with app.suspend():
@@ -175,7 +175,7 @@ class ExecutableSlide(CodeSlide, ABC):
             self._exec(app)
             if self.wait_for_key:
                 wait_for_key()
-            self.mode = "code"
+            self.display_mode = "code"
             console.clear()
 
 
@@ -225,6 +225,8 @@ class PythonSlide(ExecutableSlide):
 
 
 class ShellSlide(ExecutableSlide):
+    """Slide with shell command(s)."""
+
     language: Final[str] = "shell"
     _executed: bool = False
 
@@ -265,9 +267,9 @@ class ShellSlide(ExecutableSlide):
 
 
 class MarkdownSlide(Slide):
-    classes: list[str] | None = None
+    """Markdown slide."""
 
-    """Markdown slide with source from external file or string."""
+    classes: list[str] | None = None
 
     def _render_impl(self, app: App) -> Markdown:
         return Markdown(dedent(self.source), classes=" ".join(self.classes or []))
@@ -333,6 +335,7 @@ class DataSlide(Slide):
 
 class ErrorSlide(Slide):
     """Slide to display an error message."""
+
     def _render_impl(self, app: App) -> Widget:
         return Static(Text.from_ansi(self.source), classes="error")
 

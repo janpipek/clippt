@@ -40,7 +40,14 @@ class PresentationApp(App):
 
     shell_cwd: Path | None = None
 
-    def __init__(self, *, slides: Sequence[str | Path | Slide], title: str, shell_cwd: Path | None = None, **kwargs):
+    def __init__(
+        self,
+        *,
+        slides: Sequence[str | Path | Slide],
+        title: str,
+        shell_cwd: Path | None = None,
+        **kwargs,
+    ):
         self.slides = self._ensure_load_slides(list(slides))
         self.shell_cwd = shell_cwd
         super().__init__(**kwargs)
@@ -50,7 +57,9 @@ class PresentationApp(App):
         if not slides:
             return [ErrorSlide(source="**Error**: Empty presentation.")]
         return [
-            slide_or_path if isinstance(slide_or_path, Slide) else load_slide(slide_or_path)
+            slide_or_path
+            if isinstance(slide_or_path, Slide)
+            else load_slide(slide_or_path)
             for slide_or_path in slides
         ]
 

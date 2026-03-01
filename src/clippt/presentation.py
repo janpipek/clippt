@@ -122,7 +122,6 @@ class Presentation(BaseModel):
                                 )
 
 
-
 def load_presentation(path_or_file: Path | str | io.TextIOBase, /) -> Presentation:
     if isinstance(path_or_file, io.TextIOBase):
         content = path_or_file.read()
@@ -136,10 +135,14 @@ def load_presentation(path_or_file: Path | str | io.TextIOBase, /) -> Presentati
         match path.suffix.lower():
             case ".toml":
                 data = tomllib.loads(path.read_text())
-                presentation = Presentation.model_validate(data | {"slide_base_path": pwd})
+                presentation = Presentation.model_validate(
+                    data | {"slide_base_path": pwd}
+                )
             case ".json":
                 data = json.loads(path.read_text())
-                presentation = Presentation.model_validate(data | {"slide_base_path": pwd})
+                presentation = Presentation.model_validate(
+                    data | {"slide_base_path": pwd}
+                )
             case _:
                 raise ValueError(f"Cannot parse {path}")
     return presentation
