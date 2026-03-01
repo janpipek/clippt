@@ -1,5 +1,5 @@
 [[slides]]
-execute_before = "echo 'print(42)' >> answer.py"
+execute_before = "echo 'print(42)' > answer.py"
 type = "python"
 path = "answer.py"
-title = "Reload for more code lines!"
+title = "Write a Python file and then execute it"
