@@ -18,7 +18,7 @@ from clippt.slides import (
 
 
 class SlideDescription(BaseModel):
-    """Description of a slide."""
+    """Description of a single slide."""
 
     class Config:
         extra = "forbid"
@@ -97,7 +97,7 @@ class Presentation(BaseModel):
                                     exclude_none=True, exclude={"type", "cwd"}
                                 ),
                             )
-                        case "markdown" | None:
+                        case "markdown":
                             yield MarkdownSlide(
                                 **s.model_dump(
                                     exclude_none=True,
@@ -108,6 +108,19 @@ class Presentation(BaseModel):
                             yield CodeSlide(
                                 **s.model_dump(exclude_none=True, exclude={"type"})
                             )
+                        case None:
+                            if s.language:
+                                yield CodeSlide(
+                                    **s.model_dump(exclude_none=True, exclude={"type"})
+                                )
+                            else:
+                                yield MarkdownSlide(
+                                    **s.model_dump(
+                                        exclude_none=True,
+                                        exclude={"type", "title", "language"},
+                                    )
+                                )
+
 
 
 def load_presentation(path_or_file: Path | str | io.TextIOBase, /) -> Presentation:
