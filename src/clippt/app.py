@@ -10,7 +10,7 @@ from textual.containers import Container
 from textual.css.query import QueryError
 from textual.widgets import Footer, Header
 
-from clippt.slides import Slide, load_slide
+from clippt.slides import Slide, load_slide, ErrorSlide
 from clippt.theming import css_tweaks, my_theme
 
 
@@ -47,6 +47,8 @@ class PresentationApp(App):
         self.title = title
 
     def _ensure_load_slides(self, slides: list[Slide | str | Path]) -> list[Slide]:
+        if not slides:
+            return [ErrorSlide(source="**Error**: Empty presentation.")]
         return [
             slide_or_path if isinstance(slide_or_path, Slide) else load_slide(slide_or_path)
             for slide_or_path in slides
