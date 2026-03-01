@@ -1,6 +1,6 @@
 # clippt
 
-CLI slideshows in Python and Textual.
+A command-line based presentation application.
 
 ## Installation
 
@@ -10,15 +10,17 @@ uv tool install clippt
 
 ## Running
 
+```
 Usage: clippt [OPTIONS] SOURCE
 
 Options:
-  --disable-footer  Disable footer.
+  --disable-footer  Disable footer
   -c, --continue    Continue from last slide.
+```
 
 ## Configuration
 
-TOML / JSON / YAML format, to be described
+A presentation is defined in a source file in TOML / JSON / YAML format, to be described.
 
 ## Examples
 
@@ -27,3 +29,5 @@ Syntax highlighting in many languages:
 ```shell
 uv run clippt examples/fibonacci/
 ```
+
+For more, see [examples/README.md](examples/README.md).
