@@ -31,6 +31,7 @@ class Slide(ABC, BaseModel):
     runnable: bool = False
     execute_before: str | None = None
     """Shell script to execute before the slide is rendered."""
+
     cwd: Path | None = None
 
     @model_validator(mode="after")
@@ -68,6 +69,11 @@ class Slide(ABC, BaseModel):
 
 
 class CodeSlide(Slide):
+    """Slide containing (any) code.
+
+    It is not executable - see :class:`ExecutableSlide` and its subclasses.
+    """
+
     language: str | None = None
     title: Optional[str] = None
     is_title_markdown: bool = False
@@ -101,12 +107,23 @@ class CodeSlide(Slide):
 
 
 class ExecutableSlide(CodeSlide, ABC):
-    """Slide with runnable code from external file or string."""
+    """Slide with runnable code from external file or string.
+
+    An abstract base class which has implementation for several
+    languages.
+    """
 
     mode: Literal["code", "output"] = "code"
+    """What is displayed - code or output."""
+
     alt_screen: bool = False
+    """If true, run the code in an alternate, interactive screen."""
+
     runnable: bool = True
+
     wait_for_key: bool = False
+    """If true, wait for a key press before continuing."""
+
     is_error: bool = False
 
     _output: str | None = None
@@ -163,6 +180,11 @@ class ExecutableSlide(CodeSlide, ABC):
 
 
 class PythonSlide(ExecutableSlide):
+    """Slide with runnable Python code.
+
+    It executes the code directly in the running Python process.
+    """
+
     language: Final[str] = "python"
 
     def _exec_inline(self, app) -> str:
@@ -282,6 +304,8 @@ class FuncSlide(Slide):
 
 
 class DataSlide(Slide):
+    """Slide containing data displayed as a table."""
+
     data: Optional[pl.DataFrame] = None
 
     class Config:
@@ -308,31 +332,12 @@ class DataSlide(Slide):
 
 
 class ErrorSlide(Slide):
+    """Slide to display an error message."""
     def _render_impl(self, app: App) -> Widget:
         return Static(Text.from_ansi(self.source), classes="error")
 
 
-def slide(f: Callable[[App], Any]) -> FuncSlide:
-    """Decorator to create a markdown slide from a function."""
-    return FuncSlide(f=f)
-
-
-def md(source: str, **kwargs) -> MarkdownSlide:
-    """Helper function to create a simple Markdown slide."""
-    return MarkdownSlide(path=None, source=source, **kwargs)
-
-
-def py(source: str, **kwargs) -> ExecutableSlide:
-    """Helper function to create a simple Python code slide."""
-    return PythonSlide(path=None, source=source, **kwargs)
-
-
-def sh(cmd, **kwargs) -> ExecutableSlide:
-    """Helper function to create a shell command slide."""
-    return ShellSlide(source=cmd, **kwargs)
-
-
-def load(path: str | Path, **kwargs) -> Slide:
+def load_slide(path: str | Path, **kwargs) -> Slide:
     """Load a slide from an external file."""
     path = Path(path)
     match path.suffix:

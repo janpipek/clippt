@@ -28,8 +28,8 @@ def clippt(*, source: Path, disable_footer: bool, continue_: bool):
     app = PresentationApp(slides=slides, title=presentation.title or "", shell_cwd=presentation.shell_cwd)
     app.enable_footer = not disable_footer
     if continue_ and Path(".current_slide").exists():
-        app.slide_index = int(Path(".current_slide").read_text())
-    app.slide_index = min(app.slide_index, len(slides) - 1)
+        app.current_slide_index = int(Path(".current_slide").read_text())
+    app.current_slide_index = min(app.current_slide_index, len(slides) - 1)
     app.run()
 
 

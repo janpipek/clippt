@@ -13,7 +13,7 @@ from clippt.slides import (
     PythonSlide,
     ShellSlide,
     Slide,
-    load,
+    load_slide,
 )
 
 
@@ -72,13 +72,13 @@ class Presentation(BaseModel):
             if isinstance(s, str):
                 slide_path = self._get_full_slide_path(Path(s))
                 if slide_path.exists():
-                    yield load(slide_path, cwd=self.full_shell_cwd)
+                    yield load_slide(slide_path, cwd=self.full_shell_cwd)
                 else:
                     yield ErrorSlide(source=f"Slide not found: {slide_path}")
             elif isinstance(s, SlideDescription):
                 cwd = self._get_full_slide_path(s.cwd) if s.cwd else self.full_shell_cwd
                 if s.path:
-                    yield load(
+                    yield load_slide(
                         path=self._get_full_slide_path(s.path),
                         **s.model_dump(
                             exclude_none=True, exclude={"type", "path", "cwd"}

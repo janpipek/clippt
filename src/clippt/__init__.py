@@ -1,13 +1,9 @@
-"""Create a textual"""
-
 from clippt.app import PresentationApp
-from clippt.slides import load, md, py, sh, slide
+from clippt.slides import load_slide
+from clippt.presentation import load_presentation
 
 __all__ = [
     "PresentationApp",
-    "md",
-    "sh",
-    "py",
-    "load",
-    "slide",
+    "load_slide",
+    "load_presentation",
 ]

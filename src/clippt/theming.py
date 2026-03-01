@@ -30,6 +30,11 @@ css_tweaks = """
         dock: bottom;
         height: 1;
     }
+    Header {
+        background: #ffffd0;
+        color: white;
+        height: 1;
+    }
     Markdown.title {
         MarkdownFence {
             background: white;
