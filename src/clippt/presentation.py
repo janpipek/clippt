@@ -61,6 +61,7 @@ class Presentation(BaseModel):
 
     @property
     def full_shell_cwd(self) -> Path | None:
+        """Working directory for any shell commands."""
         return (
             self._get_full_slide_path(self.shell_cwd)
             if self.shell_cwd
@@ -68,6 +69,9 @@ class Presentation(BaseModel):
         )
 
     def create_slides(self) -> Iterable[Slide]:
+        """Turn the slide descriptions into real slide objects."""
+        # TODO: Can we turn this into a function? It is a method only to keep the cwd.
+
         for s in self.slides:
             if isinstance(s, str):
                 slide_path = self._get_full_slide_path(Path(s))
@@ -123,6 +127,7 @@ class Presentation(BaseModel):
 
 
 def load_presentation(path_or_file: Path | str | io.TextIOBase, /) -> Presentation:
+    """Get a presentation description from a file."""
     if isinstance(path_or_file, io.TextIOBase):
         content = path_or_file.read()
         pwd = Path(".")

@@ -31,8 +31,10 @@ class Slide(ABC, BaseModel):
     runnable: bool = False
     execute_before: str | None = None
     """Shell script to execute before the slide is rendered."""
-
     cwd: Path | None = None
+
+    title: Optional[str] = None
+    is_title_markdown: bool = False
 
     @model_validator(mode="after")
     def _load_on_start(self):
@@ -50,6 +52,7 @@ class Slide(ABC, BaseModel):
         self._load()
 
     def render(self, app: App) -> Widget:
+        """Create the widgets representing the slide."""
         if self.execute_before:
             subprocess.run(
                 self.execute_before.strip(),
@@ -59,7 +62,14 @@ class Slide(ABC, BaseModel):
                 encoding="utf-8",
                 cwd=self.cwd,
             )
-        return self._render_impl(app)
+        widgets = []
+        if self.title:
+            if self.is_title_markdown:
+                widgets.append(Markdown(self.title))
+            else:
+                widgets.append(Markdown(f"# {self.title}"))
+        widgets.append(self._render_impl(app))
+        return VerticalScroll(*widgets, can_focus=False)
 
     @abstractmethod
     def _render_impl(self, app: App) -> Widget: ...
@@ -75,13 +85,11 @@ class CodeSlide(Slide):
     """
 
     language: str | None = None
-    title: Optional[str] = None
-    is_title_markdown: bool = False
 
     def _render_impl(self, app) -> Widget:
         return self._render_code()
 
-    def _render_code(self) -> VerticalScroll:
+    def _render_code(self) -> Markdown:
         if self.path:
             self.reload()
         code_lines = []
@@ -96,14 +104,7 @@ class CodeSlide(Slide):
                 continue
             code_lines.append(line)
         code = "\n".join(line for line in code_lines)
-        if self.title:
-            if self.is_title_markdown:
-                md = Markdown(self.title + f"\n\n```{self.language}\n{code}\n```")
-            else:
-                md = Markdown(f"# {self.title}\n\n```{self.language}\n{code}\n```")
-        else:
-            md = Markdown(f"```{self.language}\n{code}\n```")
-        return VerticalScroll(md, can_focus=False)
+        return Markdown(f"```{self.language}\n{code}\n```")
 
 
 class ExecutableSlide(CodeSlide, ABC):
@@ -146,16 +147,7 @@ class ExecutableSlide(CodeSlide, ABC):
 
     def _render_output(self, *, output: str, app: App) -> Widget:
         classes = "error" if self.is_error else "output"
-        output_widget = Static(Text.from_ansi(output + "\n"), classes=classes)
-        if self.title:
-            if self.is_title_markdown:
-                return VerticalScroll(
-                    Markdown(self.title), output_widget, can_focus=False
-                )
-            return VerticalScroll(
-                Markdown(f"# {self.title}"), output_widget, can_focus=False
-            )
-        return VerticalScroll(output_widget, can_focus=False)
+        return Static(Text.from_ansi(output + "\n"), classes=classes)
 
     @abstractmethod
     def _exec_inline(self, app: App) -> str:
@@ -272,18 +264,14 @@ class MarkdownSlide(Slide):
     classes: list[str] | None = None
 
     def _render_impl(self, app: App) -> Markdown:
-        return Markdown(dedent(self.source), classes=" ".join(self.classes or []))
+        return Markdown(self.source, classes=" ".join(self.classes or []))
 
 
 class TextSlide(Slide):
     title: Optional[str] = None
 
-    def _render_impl(self, app: App) -> VerticalScroll:
-        widgets = []
-        if self.title:
-            widgets.append(Markdown(f"# {self.title}"))
-        widgets.append(Static(self.source))
-        return VerticalScroll(*widgets, can_focus=False)
+    def _render_impl(self, app: App) -> Static:
+        return Static(self.source)
 
 
 class FuncSlide(Slide):
