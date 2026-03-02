@@ -41,3 +41,7 @@ Press "." to run the code."""
 [[slides]]
 path = "planets.csv"
 title = "Data slide"
+
+[[slides]]
+path = "non-existent.py"
+title = "File missing"
