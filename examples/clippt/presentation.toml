@@ -1,0 +1,43 @@
+title = "clippt"
+
+[[slides]]
+source = """
+# clippt
+
+## A command-line based (TUI) presentation application.
+
+https://github.com/janpipek/clippt
+"""
+
+[[slides]]
+source = """
+# Main features
+
+- Simple TOML/YAML/JSON configuration.
+- Many slide types.
+- Run Python code or shell directly from the app.
+- Build presentations programatically.
+"""
+
+[[slides]]
+path = "markdown.md"
+
+[[slides]]
+type = "python"
+source = "print(42)"
+title = """
+Runnable Python slide
+
+Press "." to run the code.
+"""
+
+[[slides]]
+type = "shell"
+source = "ls -la"
+title = """Runnable shell slide
+
+Press "." to run the code."""
+
+[[slides]]
+path = "planets.csv"
+title = "Data slide"
