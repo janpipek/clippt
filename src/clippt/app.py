@@ -11,7 +11,7 @@ from textual.css.query import QueryError
 from textual.widgets import Footer, Header
 
 from clippt.slides import Slide, load_slide, ErrorSlide
-from clippt.theming import css_tweaks, my_theme
+from clippt.theming import css_tweaks
 
 
 class PresentationApp(App):
@@ -76,8 +76,8 @@ class PresentationApp(App):
 
     def on_mount(self) -> None:
         """Hook called when the app is mounted."""
-        self.register_theme(my_theme)
-        self.theme = "my"
+        # self.register_theme(my_theme)
+        self.theme = "atom-one-light"
 
     def on_resize(self) -> None:
         """Hook called when the app is resized."""

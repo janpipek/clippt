@@ -25,35 +25,29 @@ css_tweaks = """
         align: center middle;
     }
     Footer {
-        background: #ffffd0;
-        color: white;
         dock: bottom;
         height: 1;
     }
     Header {
-        background: #ffffd0;
-        color: white;
         height: 1;
     }
     Markdown.title {
         MarkdownFence {
-            background: white;
             margin: 0;
         }
     }
     MarkdownFence {
-        background: #fff9e4; /* Light yellow */
         margin: 1;
         max-height: 500;
     }
     Static.output {
-        background: #ccccff;
         margin: 0 3;
         max-height: 500;
         padding: 1 2;
     }
     Static.error {
         background: #ffcccc;
+        color: #800000;
         margin: 0 3;
         max-height: 500;
         padding: 1 2;
