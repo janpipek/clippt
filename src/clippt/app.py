@@ -77,7 +77,7 @@ class PresentationApp(App):
     def on_mount(self) -> None:
         """Hook called when the app is mounted."""
         # self.register_theme(my_theme)
-        self.theme = "atom-one-light"
+        self.theme = "textual-light"
 
     def on_resize(self) -> None:
         """Hook called when the app is resized."""

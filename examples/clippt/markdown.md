@@ -1,4 +1,6 @@
-# Markdown slide
+# Example: markdown slide
+
+Loaded from `markdown.md`
 
 You **can** use _basic formatting_.
 

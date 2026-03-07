@@ -17,6 +17,7 @@ source = """
 - Many slide types.
 - Run Python code or shell directly from the app.
 - Build presentations programatically.
+- Key shortcuts compatible with presenter hardware.
 """
 
 [[slides]]
@@ -26,7 +27,7 @@ path = "markdown.md"
 type = "python"
 source = "print(42)"
 title = """
-Runnable Python slide
+Example: A runnable Python slide
 
 Press "." to run the code.
 """
@@ -34,13 +35,13 @@ Press "." to run the code.
 [[slides]]
 type = "shell"
 source = "ls -la"
-title = """Runnable shell slide
+title = """Example: Runnable shell slide
 
 Press "." to run the code."""
 
 [[slides]]
 path = "planets.csv"
-title = "Data slide"
+title = "Example: data slide"
 
 [[slides]]
 path = "non-existent.py"
@@ -48,4 +49,7 @@ title = "File missing"
 
 [[slides]]
 path = "presentation.toml"
-title = "This presentation"
+title = "Example: This presentation source"
+
+[[slides]]
+title = "How to start?"
