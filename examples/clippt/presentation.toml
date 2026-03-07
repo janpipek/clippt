@@ -45,3 +45,7 @@ title = "Data slide"
 [[slides]]
 path = "non-existent.py"
 title = "File missing"
+
+[[slides]]
+path = "presentation.toml"
+title = "This presentation"

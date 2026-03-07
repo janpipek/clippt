@@ -27,7 +27,7 @@ A presentation is defined in a source file in TOML / JSON / YAML format, to be d
 Syntax highlighting in many languages:
 
 ```shell
-uv run clippt examples/fibonacci/
+uv run clippt examples/fibonacci
 ```
 
 For more, see [examples/README.md](examples/README.md).

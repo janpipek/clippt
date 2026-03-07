@@ -15,7 +15,7 @@ dependencies = [
 ]
 authors = [{name = "Jan Pipek", email = "jan.pipek@gmail.com"}]
 license = "MIT"
-license-file = "LICENSE"
+license-files = ["LICENSE"]
 
 [project.scripts]
 clippt = "clippt.cli:clippt"

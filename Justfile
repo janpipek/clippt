@@ -1,10 +1,13 @@
 set export
 
 example-zen:
-    uv run src/clippt/cli.py examples/zen_of_python
+    uv run clippt examples/zen_of_python
 
 example-fibonacci:
-    uv run src/clippt/cli.py examples/fibonacci
+    uv run clippt examples/fibonacci
+
+demo:
+    uv run clippt examples/clippt
 
 type-check:
     uv run ty check src
