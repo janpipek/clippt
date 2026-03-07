@@ -20,7 +20,7 @@ Options:
 
 ## Configuration
 
-A presentation is defined in a source file in TOML / JSON / YAML format, to be described.
+A presentation is defined in a source file in TOML / JSON  format. 
 
 ## Examples
 

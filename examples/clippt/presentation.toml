@@ -13,7 +13,7 @@ https://github.com/janpipek/clippt
 source = """
 # Main features
 
-- Simple TOML/YAML/JSON configuration.
+- Simple TOML/JSON configuration.
 - Many slide types.
 - Run Python code or shell directly from the app.
 - Build presentations programatically.
@@ -53,3 +53,6 @@ title = "Example: This presentation source"
 
 [[slides]]
 title = "How to start?"
+
+[[slides]]
+title = "The end"
