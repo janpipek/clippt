@@ -6,3 +6,4 @@ slides = [
     {type = "shell", source = "python -c 'import this'", title="The Zen of Python (Shell)"},
     {type = "code", path="presentation.toml", title="This presentation"},
     {source = "# The end"},
+]
