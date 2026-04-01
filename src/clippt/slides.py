@@ -78,6 +78,13 @@ class Slide(ABC, BaseModel):
         pass
 
 
+class EmptySlide(Slide):
+    """Slide with no content."""
+
+    def _render_impl(self, app: App) -> Widget:
+        return Markdown("")
+
+
 class CodeSlide(Slide):
     """Slide containing (any) code.
 

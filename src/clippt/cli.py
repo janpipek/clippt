@@ -22,11 +22,18 @@ from clippt.presentation import load_presentation, Presentation
 @click.option(
     "--continue", "-c", "continue_", is_flag=True, help="Continue from last slide."
 )
-@click.option(
-    "--serve", "-s", is_flag=True, help="Start a web server"
-)
-def clippt(*, source: Path, disable_footer: bool, continue_: bool, serve: bool):
+@click.option("--serve", "-s", is_flag=True, help="Start a web server")
+@click.option("-v", "--verbose", count=True)
+def clippt(
+    *, source: Path, disable_footer: bool, continue_: bool, serve: bool, verbose: int
+):
     """Run a presentation in the command-line."""
+
+    log_level = "DEBUG" if verbose > 1 else "INFO" if verbose > 0 else "WARNING"
+    import logging
+
+    logging.basicConfig(level=log_level)
+
     presentation = create_presentation(source)
     slides = list(presentation.create_slides())
     app = PresentationApp(

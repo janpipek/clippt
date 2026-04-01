@@ -14,6 +14,7 @@ from clippt.slides import (
     ShellSlide,
     Slide,
     load_slide,
+    EmptySlide,
 )
 
 
@@ -113,15 +114,15 @@ class Presentation(BaseModel):
                                 **s.model_dump(exclude_none=True, exclude={"type"})
                             )
                         case None:
-                            if s.language:
-                                yield CodeSlide(
-                                    **s.model_dump(exclude_none=True, exclude={"type"})
-                                )
+                            if not s.source:
+                                yield EmptySlide(**s.model_dump(exclude_none=True))
+                            elif s.language:
+                                yield CodeSlide(**s.model_dump(exclude_none=True))
                             else:
                                 yield MarkdownSlide(
                                     **s.model_dump(
                                         exclude_none=True,
-                                        exclude={"type", "title", "language"},
+                                        exclude={"title", "language"},
                                     )
                                 )
 

@@ -52,7 +52,7 @@ path = "presentation.toml"
 title = "Example: This presentation source"
 
 [[slides]]
-title = "How to start?"
+title = "An empty slide (just title)"
 
 [[slides]]
 title = "The end"
