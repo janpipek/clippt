@@ -4,15 +4,15 @@ _default:
     @just --list
 
 example-zen:
-    uv run clippt examples/zen_of_python
+    uv run clippt src/clippt/examples/zen_of_python
 
 # Example with multiple languages rendering
 example-fibonacci:
-    uv run clippt examples/fibonacci
+    uv run clippt src/clippt/examples/fibonacci
 
 # Show the presentation about clippt itself
 demo:
-    uv run clippt examples/clippt
+    uv run clippt src/clippt/examples/clippt
 
 type-check:
     uv run ty check src

@@ -16,7 +16,7 @@ class TestLoadPresentation:
         ],
     )
     def test_load_fibonacci(self, path):
-        rel_path = Path(__file__).parent.parent / "examples" / path
+        rel_path = Path(__file__).parent.parent / "src" / "clippt" / "examples" / path
         presentation = load_presentation(rel_path)
         slides = list(presentation.create_slides())
         assert len(slides) == 11

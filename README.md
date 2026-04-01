@@ -24,10 +24,14 @@ A presentation is defined in a source file in TOML / JSON  format.
 
 ## Examples
 
+```shell
+uv run --with clippt python -m clippt
+```
+
 Syntax highlighting in many languages:
 
 ```shell
-uv run clippt examples/fibonacci
+uv run clippt src/clippt/examples/fibonacci
 ```
 
-For more, see [examples/README.md](examples/README.md).
+For more, see [src/clippt/examples/README.md](src/clippt/examples/README.md).
