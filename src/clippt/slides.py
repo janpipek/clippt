@@ -227,15 +227,10 @@ class ShellSlide(ExecutableSlide):
     """Slide with shell command(s)."""
 
     language: Final[str] = "shell"
-    _executed: bool = False
 
     def __post_init__(self, **kwargs):
         if not self.source.strip():
             _, self.source = detect_shell()
-
-    def _load(self):
-        self._executed = False
-        super()._load()
 
     def _exec(self, app: App, columns: int | None = None):
         env = None
@@ -252,7 +247,7 @@ class ShellSlide(ExecutableSlide):
         )
 
     def _exec_inline(self, app) -> str:
-        if not self._executed:
+        if self._output is None:
             # margin: 0 3 adds 6 chars of horizontal chrome; subtract so the
             # command formats output to the exact displayable width.
             columns = app.size.width - 10
@@ -305,8 +300,7 @@ class DataSlide(Slide):
 
     data: Optional[pl.DataFrame] = None
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = {"arbitrary_types_allowed": True}
 
     def _render_impl(self, app: App) -> Widget:
         if self.data is not None:

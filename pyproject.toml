@@ -34,12 +34,17 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
-    "pytest-asyncio>=1.3.0",
-    "pytest-check>=2.7.2",
-    "textual-dev>=1.8.0",
-    "ty>=0.0.16",
+    "pytest>=9.0",
+    "pytest-asyncio>=1.3",
+    "pytest-check>=2.8",
+    "textual-dev>=1.8",
+    "ty>=0.0.27",
 ]
 
 [tool.ty]
 # ty will automatically discover Python files in your project
+
+[tool.ruff]
+exclude = [
+    "examples/"  # Formatted for the viewer
+]

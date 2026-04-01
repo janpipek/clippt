@@ -21,8 +21,7 @@ from clippt.slides import (
 class SlideDescription(BaseModel):
     """Description of a single slide."""
 
-    class Config:
-        extra = "forbid"
+    model_config = {"extra": "forbid"}
 
     type: Literal["python", "shell", "markdown", "code"] | None = None
     source: str | None = None
