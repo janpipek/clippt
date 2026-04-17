@@ -1,9 +1,9 @@
 from clippt.app import PresentationApp
-from clippt.slides import load_slide
-from clippt.presentation import load_presentation
+from clippt.slides import Slide
+from clippt.presentation import Presentation
 
 __all__ = [
     "PresentationApp",
-    "load_slide",
-    "load_presentation",
+    "Presentation",
+    "Slide",
 ]

@@ -1,153 +1,39 @@
-import io
-import json
-import tomllib
+
 from pathlib import Path
-from typing import Iterable, Literal
 
 from pydantic import BaseModel, Field
 
+from clippt.model import PresentationModel, SlideModel
 from clippt.slides import (
-    CodeSlide,
-    ErrorSlide,
-    MarkdownSlide,
-    PythonSlide,
-    ShellSlide,
     Slide,
     load_slide,
-    EmptySlide,
 )
 
 
-class SlideDescription(BaseModel):
-    """Description of a single slide."""
-
-    model_config = {"extra": "forbid"}
-
-    type: Literal["python", "shell", "markdown", "code"] | None = None
-    source: str | None = None
-    path: Path | None = None
-    """Path relative to the presentation."""
-
-    title: str | None = None
-    language: str | None = None
-    """Language to be used for syntax highlighting."""
-
-    alt_screen: bool | None = None
-    mode: Literal["code", "output"] | None = None
-    runnable: bool | None = None
-    wait_for_key: bool | None = None
-
-    classes: list[str] | None = None
-    cwd: Path | None = None
-    execute_before: str | None = None
-
-
 class Presentation(BaseModel):
-    """Description of a presentation."""
-
-    slide_base_path: Path | None = Field(None, description="Base directory for slides")
-    shell_cwd: Path | None = Field(
-        None,
-        description="Base directory for shell commands, relative to slide_base_path",
-    )
-
+    slides: list[Slide] = Field(default_factory=list)
     title: str | None = None
-    slides: list[SlideDescription | str] = Field(default_factory=list)
 
-    def _get_full_slide_path(self, path: Path) -> Path:
-        if path.is_absolute():
-            return path
-        return (self.slide_base_path or Path(".")) / path
+    @classmethod
+    def from_model(cls, model: PresentationModel) -> "Presentation":
+        def _create_slide(s: SlideModel | str):
+            if isinstance(s, str):
+                path = (model.slide_base_path or Path(".")) / Path(s)
+                return load_slide(path, cwd=model.full_shell_cwd)
+            else:
+                return Slide.from_model(s, base_path=model.slide_base_path, cwd=model.full_shell_cwd)
 
-    @property
-    def full_shell_cwd(self) -> Path | None:
-        """Working directory for any shell commands."""
-        return (
-            self._get_full_slide_path(self.shell_cwd)
-            if self.shell_cwd
-            else self.slide_base_path
+        return Presentation(
+            title=model.title,
+            slides=[
+                _create_slide(s) for s in model.slides
+            ]
         )
 
-    def create_slides(self) -> Iterable[Slide]:
-        """Turn the slide descriptions into real slide objects."""
-        # TODO: Can we turn this into a function? It is a method only to keep the cwd.
+    @classmethod
+    def from_path(cls, path: Path) -> "Presentation":
+        model = PresentationModel.from_path(path)
+        return cls.from_model(model)
 
-        for s in self.slides:
-            if isinstance(s, str):
-                slide_path = self._get_full_slide_path(Path(s))
-                if slide_path.exists():
-                    yield load_slide(slide_path, cwd=self.full_shell_cwd)
-                else:
-                    yield ErrorSlide(source=f"Slide not found: {slide_path}")
-            elif isinstance(s, SlideDescription):
-                cwd = self._get_full_slide_path(s.cwd) if s.cwd else self.full_shell_cwd
-                if s.path:
-                    yield load_slide(
-                        path=self._get_full_slide_path(s.path),
-                        **s.model_dump(
-                            exclude_none=True, exclude={"type", "path", "cwd"}
-                        ),
-                    )
-                else:
-                    match s.type:
-                        case "python":
-                            yield PythonSlide(
-                                **s.model_dump(exclude_none=True, exclude={"type"})
-                            )
-                        case "shell":
-                            yield ShellSlide(
-                                cwd=cwd,
-                                **s.model_dump(
-                                    exclude_none=True, exclude={"type", "cwd"}
-                                ),
-                            )
-                        case "markdown":
-                            yield MarkdownSlide(
-                                **s.model_dump(
-                                    exclude_none=True,
-                                    exclude={"type", "title", "language"},
-                                )
-                            )
-                        case "code":
-                            yield CodeSlide(
-                                **s.model_dump(exclude_none=True, exclude={"type"})
-                            )
-                        case None:
-                            if not s.source:
-                                yield EmptySlide(**s.model_dump(exclude_none=True))
-                            elif s.language:
-                                yield CodeSlide(**s.model_dump(exclude_none=True))
-                            else:
-                                yield MarkdownSlide(
-                                    **s.model_dump(
-                                        exclude_none=True,
-                                        exclude={"title", "language"},
-                                    )
-                                )
-
-
-def load_presentation(path_or_file: Path | str | io.TextIOBase, /) -> Presentation:
-    """Get a presentation description from a file."""
-    if isinstance(path_or_file, io.TextIOBase):
-        content = path_or_file.read()
-        pwd = Path(".")
-        data = tomllib.loads(content)
-        presentation = Presentation.model_validate(data | {"slide_base_path": pwd})
-    else:
-        path = Path(path_or_file)
-        pwd = path.parent
-
-        match path.suffix.lower():
-            case ".toml":
-                data = tomllib.loads(path.read_text())
-                presentation = Presentation.model_validate(
-                    data | {"slide_base_path": pwd}
-                )
-            case ".json":
-                data = json.loads(path.read_text())
-                presentation = Presentation.model_validate(
-                    data | {"slide_base_path": pwd}
-                )
-            case _:
-                raise ValueError(f"Cannot parse {path}")
-    return presentation
+    def add_slide(self, slide: Slide) -> None:
+        self.slides.append(slide)

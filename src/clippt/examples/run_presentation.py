@@ -1,18 +1,23 @@
 from io import StringIO
 
+from clippt.model import PresentationModel
 from clippt.app import PresentationApp
-from clippt.presentation import load_presentation
+from clippt.presentation import Presentation
 
-CONTENT = """
-title = "My Presentation"
-slides = [
-    {source = "# This is slide 1"},
-    {source = "import this", type = "python" },
-]
-"""
+PRESENTATION = {
+    "title": "My Presentation",
+    "slides": [
+        {"source" : "# This is slide 1"},
+        {"source" : "import this", "type" : "python" },
+    ]
+}
+
 
 if __name__ == "__main__":
-    presentation = load_presentation(StringIO(CONTENT))
-    slides = list(presentation.create_slides())
-    app = PresentationApp(slides=slides, title=presentation.title or "")
+    model = PresentationModel.model_validate(PRESENTATION)
+    presentation = Presentation.from_model(model)
+
+    presentation
+
+    app = PresentationApp(presentation)
     app.run()

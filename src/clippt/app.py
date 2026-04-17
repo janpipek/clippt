@@ -12,6 +12,7 @@ from textual.widgets import Footer, Header
 
 from clippt.slides import Slide, load_slide, ErrorSlide
 from clippt.theming import css_tweaks
+from clippt.presentation import Presentation
 
 
 class PresentationApp(App):
@@ -36,32 +37,25 @@ class PresentationApp(App):
 
     current_slide_index: int = 0
 
-    slides: list[Slide]
+    presentation: Presentation
 
     shell_cwd: Path | None = None
 
     def __init__(
         self,
+        presentation: Presentation,
         *,
-        slides: Sequence[str | Path | Slide],
-        title: str,
         shell_cwd: Path | None = None,
         **kwargs,
     ):
-        self.slides = self._ensure_load_slides(list(slides))
+        self.presentation = presentation
         self.shell_cwd = shell_cwd
         super().__init__(**kwargs)
-        self.title = title
+        self.title = presentation.title
 
-    def _ensure_load_slides(self, slides: list[Slide | str | Path]) -> list[Slide]:
-        if not slides:
-            return [ErrorSlide(source="**Error**: Empty presentation.")]
-        return [
-            slide_or_path
-            if isinstance(slide_or_path, Slide)
-            else load_slide(slide_or_path)
-            for slide_or_path in slides
-        ]
+    @property
+    def slides(self) -> list[Slide]:
+        return self.presentation.slides
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""

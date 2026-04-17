@@ -23,6 +23,7 @@ from textual_fastdatatable import DataTable
 from textual_fastdatatable.backend import PolarsBackend
 
 from clippt.utils import wait_for_key
+from clippt.model import SlideModel
 
 
 class Slide(ABC, BaseModel):
@@ -72,10 +73,68 @@ class Slide(ABC, BaseModel):
         return VerticalScroll(*widgets, can_focus=False)
 
     @abstractmethod
-    def _render_impl(self, app: App) -> Widget: ...
+    def _render_impl(self, app: App) -> Widget:
+        ...
 
     def run(self) -> None:
         pass
+
+    @staticmethod
+    def from_model(s: SlideModel, *, base_path: Path | None = None, cwd: Path | None = None) -> "Slide":
+        if not base_path:
+            base_path = Path(".")
+        if not cwd:
+            cwd = base_path
+        if s.path:
+            # TODO: Check it is properly relative
+            full_path = base_path / s.path
+            return load_slide(
+                path=full_path,
+                cwd=cwd,
+                **s.model_dump(
+                    exclude_none=True, exclude={"type", "path", "cwd"}
+                ),
+            )
+        else:
+            match s.type:
+                case "python":
+                    return PythonSlide(
+                        cwd=cwd,
+                        **s.model_dump(exclude_none=True, exclude={"type"})
+                    )
+                case "shell":
+                    return ShellSlide(
+                        cwd=cwd,
+                        **s.model_dump(
+                            exclude_none=True, exclude={"type", "cwd"}
+                        ),
+                    )
+                case "markdown":
+                    return MarkdownSlide(
+                        cwd=cwd,
+                        **s.model_dump(
+                            exclude_none=True,
+                            exclude={"type", "title", "language", "cwd"},
+                        )
+                    )
+                case "code":
+                    return CodeSlide(
+                        cwd=cwd,
+                        **s.model_dump(exclude_none=True, exclude={"type", "cwd"})
+                    )
+                case None:
+                    if not s.source:
+                        return EmptySlide(cwd=cwd, **s.model_dump(exclude_none=True, exclude={"cwd"}))
+                    elif s.language:
+                        return CodeSlide(cwd=cwd, **s.model_dump(exclude_none=True, exclude={"cwd"}))
+                    else:
+                        return MarkdownSlide(
+                            cwd=cwd,
+                            **s.model_dump(
+                                exclude_none=True,
+                                exclude={"title", "language", "cwd"},
+                            )
+                        )
 
 
 class EmptySlide(Slide):
@@ -209,10 +268,10 @@ class PythonSlide(ExecutableSlide):
             exec(
                 self.source,
                 globals=globals()
-                | {
-                    "WIDTH": app.size.width - (10 if self.title else 4),
-                    "HEIGHT": app.size.height - 2,
-                },
+                        | {
+                            "WIDTH": app.size.width - (10 if self.title else 4),
+                            "HEIGHT": app.size.height - 2,
+                        },
             )
         except Exception:
             self.is_error = True
