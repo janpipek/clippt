@@ -127,8 +127,8 @@ class PresentationApp(App):
             subprocess.run(shell, shell=True, capture_output=False, cwd=self.shell_cwd)
 
     def _switch_to_slide(self, index: int) -> None:
-        curent_index = self.current_slide_index
-        if index != curent_index:
+        current_index = self.current_slide_index
+        if index != current_index:
             self.current_slide_index = index
             self._update_slide()
 
