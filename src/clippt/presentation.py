@@ -1,4 +1,5 @@
 from pathlib import Path
+import io
 
 from pydantic import BaseModel, Field
 
@@ -29,8 +30,8 @@ class Presentation(BaseModel):
         )
 
     @classmethod
-    def from_path(cls, path: Path) -> "Presentation":
-        model = PresentationModel.from_path(path)
+    def from_path(cls, path_or_file: Path | str | io.TextIOBase) -> "Presentation":
+        model = PresentationModel.from_path(path_or_file)
         return cls.from_model(model)
 
     def add_slide(self, slide: Slide) -> None:

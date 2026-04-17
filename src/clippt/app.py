@@ -9,7 +9,7 @@ from textual.containers import Container
 from textual.css.query import QueryError
 from textual.widgets import Footer, Header
 
-from clippt.slides import Slide
+from clippt.slides import Slide, ErrorSlide
 from clippt.theming import css_tweaks
 from clippt.presentation import Presentation
 
@@ -47,7 +47,15 @@ class PresentationApp(App):
         shell_cwd: Path | None = None,
         **kwargs,
     ):
-        self.presentation = presentation
+        if not presentation.slides:
+            self.presentation = Presentation(
+                slides=[
+                    ErrorSlide(source="**Error**: Empty presentation"),
+                ]
+            )
+        else:
+            self.presentation = presentation
+
         self.shell_cwd = shell_cwd
         super().__init__(**kwargs)
         self.title = presentation.title
