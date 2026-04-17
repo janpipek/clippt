@@ -7,7 +7,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
-from typing import Callable, Final, Literal, Optional
+from typing import Callable, Final, Literal, Optional, Any
 
 import polars as pl
 from pydantic import BaseModel, model_validator
@@ -338,7 +338,7 @@ class TextSlide(Slide):
 class FuncSlide(Slide):
     """Any slide created from a function."""
 
-    f: Callable[[App], Markdown | Text | str]
+    f: Callable[[App], Any]
     source: str = ""  # ignored
     path: None = None  # ignored
 
