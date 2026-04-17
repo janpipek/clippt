@@ -35,9 +35,7 @@ def clippt(
     logging.basicConfig(level=log_level)
 
     presentation = Presentation.from_path(source)
-    app = PresentationApp(
-        presentation=presentation
-    )
+    app = PresentationApp(presentation=presentation)
     app.enable_footer = not disable_footer
     if continue_ and Path(".current_slide").exists():
         app.current_slide_index = int(Path(".current_slide").read_text())

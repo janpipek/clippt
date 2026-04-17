@@ -1,7 +1,6 @@
 import os
 import subprocess
 from pathlib import Path
-from typing import Sequence
 
 import click
 import shellingham
@@ -10,7 +9,7 @@ from textual.containers import Container
 from textual.css.query import QueryError
 from textual.widgets import Footer, Header
 
-from clippt.slides import Slide, load_slide, ErrorSlide
+from clippt.slides import Slide
 from clippt.theming import css_tweaks
 from clippt.presentation import Presentation
 

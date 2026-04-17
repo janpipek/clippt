@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -21,13 +20,12 @@ class Presentation(BaseModel):
                 path = (model.slide_base_path or Path(".")) / Path(s)
                 return load_slide(path, cwd=model.full_shell_cwd)
             else:
-                return Slide.from_model(s, base_path=model.slide_base_path, cwd=model.full_shell_cwd)
+                return Slide.from_model(
+                    s, base_path=model.slide_base_path, cwd=model.full_shell_cwd
+                )
 
         return Presentation(
-            title=model.title,
-            slides=[
-                _create_slide(s) for s in model.slides
-            ]
+            title=model.title, slides=[_create_slide(s) for s in model.slides]
         )
 
     @classmethod

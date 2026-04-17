@@ -59,7 +59,9 @@ class PresentationModel(BaseModel):
         )
 
     @classmethod
-    def from_path(cls, path_or_file: Path | str | io.TextIOBase, /) -> "PresentationModel":
+    def from_path(
+        cls, path_or_file: Path | str | io.TextIOBase, /
+    ) -> "PresentationModel":
         if isinstance(path_or_file, io.TextIOBase):
             content = path_or_file.read()
             pwd = Path(".")
