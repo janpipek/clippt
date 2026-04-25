@@ -48,6 +48,7 @@ class Slide(ABC, BaseModel):
                 self.source = self.path.read_text(encoding="utf-8")
             except FileNotFoundError:
                 self.source = f"File not found: {self.path}."
+                self.runnable = False
 
     def reload(self):
         self._load()
