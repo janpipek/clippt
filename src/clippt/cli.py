@@ -38,8 +38,8 @@ def clippt(
     app = PresentationApp(presentation=presentation)
     app.enable_footer = not disable_footer
     if continue_ and Path(".current_slide").exists():
-        app.current_slide_index = int(Path(".current_slide").read_text())
-    app.current_slide_index = min(app.current_slide_index, len(presentation.slides) - 1)
+        app.slide_index = int(Path(".current_slide").read_text())
+    app.slide_index = min(app.slide_index, len(presentation.slides) - 1)
 
     if serve:
         from textual_serve.server import Server

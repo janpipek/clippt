@@ -1,13 +1,15 @@
 import os
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
 
 import click
 import shellingham
 from textual.reactive import reactive
-from textual.app import App, ComposeResult
+from textual.app import App, ComposeResult, SystemCommand
 from textual.containers import Container
 from textual.css.query import QueryError
+from textual.screen import Screen
 from textual.widgets import Footer, Header
 
 from clippt.slides import Slide, ErrorSlide
@@ -18,8 +20,13 @@ from clippt.presentation import Presentation
 class PresentationApp(App):
     """Textual app for the presentation."""
 
-    enable_footer: bool = True
-    enable_header: bool = True
+    presentation: Presentation
+
+    slide_index: reactive[int] = reactive(0, init=False)
+    """Index of the current slide displayed (updates the view when set)."""
+
+    enable_footer: reactive[bool] = reactive(True, init=False, recompose=True)
+    enable_header: reactive[bool] = reactive(True, init=False, recompose=True)
 
     BINDINGS = [
         ("pageup", "prev_slide", "Previous"),
@@ -34,11 +41,6 @@ class PresentationApp(App):
     ]
 
     CSS = css_tweaks
-
-    current_slide_index: reactive[int] = reactive(0, init=False)
-    """Index of the slide displayed (updates the view when set)."""
-
-    presentation: Presentation
 
     shell_cwd: Path | None = None
 
@@ -73,7 +75,17 @@ class PresentationApp(App):
         if self.enable_footer:
             yield Footer(show_command_palette=False)
 
-    def watch_current_slide_index(self, old_value: int, new_value: int) -> None:
+    def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
+        yield SystemCommand(
+            "Toggle header", "Show / hide the application header", self.toggle_header
+        )
+        yield SystemCommand(
+            "Toggle footer", "Show / hide the application footer", self.toggle_footer
+        )
+        yield from super().get_system_commands(screen)
+
+    def watch_slide_index(self, old_value: int, new_value: int) -> None:
+        """React to the change in the current slide index."""
         self._update_slide()
 
     def on_mount(self) -> None:
@@ -90,18 +102,16 @@ class PresentationApp(App):
         self._update_slide()
 
     def action_next_slide(self) -> None:
-        self.current_slide_index = min(
-            self.current_slide_index + 1, self.presentation.slides_count - 1
-        )
+        self.slide_index = min(self.slide_index + 1, self.presentation.slides_count - 1)
 
     def action_prev_slide(self) -> None:
-        self.current_slide_index = max(self.current_slide_index - 1, 0)
+        self.slide_index = max(self.slide_index - 1, 0)
 
     def action_first_slide(self) -> None:
-        self.current_slide_index = 0
+        self.slide_index = 0
 
     def action_last_slide(self) -> None:
-        self.current_slide_index = self.presentation.slides_count - 1
+        self.slide_index = self.presentation.slides_count - 1
 
     def action_edit(self) -> None:
         if self.current_slide.path:
@@ -121,7 +131,7 @@ class PresentationApp(App):
 
     @property
     def current_slide(self) -> Slide:
-        return self.presentation.slides[self.current_slide_index]
+        return self.presentation.slides[self.slide_index]
 
     def action_shell(self):
         """Run a shell in the alternate screen."""
@@ -144,9 +154,15 @@ class PresentationApp(App):
             content_widget = self.current_slide.render(app=self)
             container_widget.mount(content_widget)
             self.sub_title = (
-                f"{self.current_slide_index + 1} / {self.presentation.slides_count}"
+                f"{self.slide_index + 1} / {self.presentation.slides_count}"
             )
 
-            Path(".current_slide").write_text(str(self.current_slide_index))
+            Path(".current_slide").write_text(str(self.slide_index))
         except QueryError:
             pass
+
+    def toggle_footer(self) -> None:
+        self.enable_footer = not self.enable_footer
+
+    def toggle_header(self) -> None:
+        self.enable_header = not self.enable_header
