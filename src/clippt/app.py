@@ -35,8 +35,8 @@ class PresentationApp(App):
         ("q", "quit", "Quit"),
         ("e", "edit", "Edit"),
         ("r", "reload", "Reload"),
-        ("home", "first_slide", "First slide"),
-        ("end", "last_slide", "Last slide"),
+        ("home", "first_slide", "First"),
+        ("end", "last_slide", "Last"),
         ("ctrl+o", "shell", "Shell"),
     ]
 
@@ -73,19 +73,30 @@ class PresentationApp(App):
             id="content",  # , can_focus=False
         )
         if self.enable_footer:
-            yield Footer(show_command_palette=False)
+            yield Footer(show_command_palette=True)
 
     def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
+        # Commands defined by textual
+        yield from super().get_system_commands(screen)
+
+        # Commands available as bound actions
+        for action in self.BINDINGS:
+            attr_name = f"action_{action[1]}"
+            if attr_name in self.__class__.__dict__:
+                attr = getattr(self, attr_name)
+                if callable(attr):
+                    yield SystemCommand(action[2], attr.__doc__, attr)
+
+        # A few extra commands
         yield SystemCommand(
             "Toggle header", "Show / hide the application header", self.toggle_header
         )
         yield SystemCommand(
             "Toggle footer", "Show / hide the application footer", self.toggle_footer
         )
-        yield from super().get_system_commands(screen)
 
     def watch_slide_index(self, old_value: int, new_value: int) -> None:
-        """React to the change in the current slide index."""
+        """Hook called when the current slide index changes"""
         self._update_slide()
 
     def on_mount(self) -> None:
@@ -97,23 +108,39 @@ class PresentationApp(App):
         """Hook called when the app is resized."""
         self._update_slide()
 
+    @property
+    def current_slide(self) -> Slide:
+        return self.presentation.slides[self.slide_index]
+
+    def action_shell(self):
+        """Run a shell in the alternate screen"""
+        with self.suspend():
+            _, shell = shellingham.detect_shell()
+            subprocess.run(shell, shell=True, capture_output=False, cwd=self.shell_cwd)
+
     def action_reload(self) -> None:
+        """Reload current slide"""
         self.current_slide.reload()
         self._update_slide()
 
     def action_next_slide(self) -> None:
+        """Go to the next slide"""
         self.slide_index = min(self.slide_index + 1, self.presentation.slides_count - 1)
 
     def action_prev_slide(self) -> None:
+        """Go to the previous slide"""
         self.slide_index = max(self.slide_index - 1, 0)
 
     def action_first_slide(self) -> None:
+        """Go to the first slide."""
         self.slide_index = 0
 
     def action_last_slide(self) -> None:
+        """Got to the last slide"""
         self.slide_index = self.presentation.slides_count - 1
 
     def action_edit(self) -> None:
+        """Edit the current slide's source code"""
         if self.current_slide.path:
             with self.suspend():
                 click.edit(
@@ -124,22 +151,14 @@ class PresentationApp(App):
         self._update_slide()
 
     def action_run(self) -> None:
+        """Execute the current slide's code and display output"""
         if self.current_slide.runnable:
             self.current_slide.run()
             self._update_slide()
             # No need to refresh() - update_slide() handles the refresh
 
-    @property
-    def current_slide(self) -> Slide:
-        return self.presentation.slides[self.slide_index]
-
-    def action_shell(self):
-        """Run a shell in the alternate screen."""
-        with self.suspend():
-            _, shell = shellingham.detect_shell()
-            subprocess.run(shell, shell=True, capture_output=False, cwd=self.shell_cwd)
-
     def _update_slide(self) -> None:
+        """Render the current slide and update the view."""
         try:
             container_widget = self.query_one("#content", Container)
             if not container_widget.is_attached:
