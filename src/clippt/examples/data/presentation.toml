@@ -1,0 +1,5 @@
+title = "Data, data, data"
+
+[[slides]]
+title = "Iris"
+path = "iris.csv"
