@@ -4,6 +4,7 @@ from clippt.model import PresentationModel
 from clippt.app import PresentationApp
 from clippt.presentation import Presentation
 from clippt.slides import FuncSlide
+from clippt.cli import create_cli_command
 
 from textual.widgets import Digits
 
@@ -27,5 +28,4 @@ if __name__ == "__main__":
     # Add a slide that has dynamic content containing widgets
     presentation.add_slide(FuncSlide(f=clock_widget))
 
-    app = PresentationApp(presentation)
-    app.run()
+    create_cli_command(presentation)()
