@@ -4,6 +4,7 @@ from pathlib import Path
 
 import click
 import shellingham
+from textual.reactive import reactive
 from textual.app import App, ComposeResult
 from textual.containers import Container
 from textual.css.query import QueryError
@@ -34,7 +35,8 @@ class PresentationApp(App):
 
     CSS = css_tweaks
 
-    current_slide_index: int = 0
+    current_slide_index: reactive[int] = reactive(0, init=False)
+    """Index of the slide displayed (updates the view when set)."""
 
     presentation: Presentation
 
@@ -60,10 +62,6 @@ class PresentationApp(App):
         super().__init__(**kwargs)
         self.title = presentation.title
 
-    @property
-    def slides(self) -> list[Slide]:
-        return self.presentation.slides
-
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         if self.enable_header:
@@ -74,6 +72,9 @@ class PresentationApp(App):
         )
         if self.enable_footer:
             yield Footer(show_command_palette=False)
+
+    def watch_current_slide_index(self, old_value: int, new_value: int) -> None:
+        self._update_slide()
 
     def on_mount(self) -> None:
         """Hook called when the app is mounted."""
@@ -89,16 +90,18 @@ class PresentationApp(App):
         self._update_slide()
 
     def action_next_slide(self) -> None:
-        self._switch_to_slide(min(self.current_slide_index + 1, len(self.slides) - 1))
+        self.current_slide_index = min(
+            self.current_slide_index + 1, self.presentation.slides_count - 1
+        )
 
     def action_prev_slide(self) -> None:
-        self._switch_to_slide(max(self.current_slide_index - 1, 0))
+        self.current_slide_index = max(self.current_slide_index - 1, 0)
 
     def action_first_slide(self) -> None:
-        self._switch_to_slide(0)
+        self.current_slide_index = 0
 
     def action_last_slide(self) -> None:
-        self._switch_to_slide(len(self.slides) - 1)
+        self.current_slide_index = self.presentation.slides_count - 1
 
     def action_edit(self) -> None:
         if self.current_slide.path:
@@ -118,19 +121,13 @@ class PresentationApp(App):
 
     @property
     def current_slide(self) -> Slide:
-        return self.slides[self.current_slide_index]
+        return self.presentation.slides[self.current_slide_index]
 
     def action_shell(self):
         """Run a shell in the alternate screen."""
         with self.suspend():
             _, shell = shellingham.detect_shell()
             subprocess.run(shell, shell=True, capture_output=False, cwd=self.shell_cwd)
-
-    def _switch_to_slide(self, index: int) -> None:
-        current_index = self.current_slide_index
-        if index != current_index:
-            self.current_slide_index = index
-            self._update_slide()
 
     def _update_slide(self) -> None:
         try:
@@ -144,9 +141,11 @@ class PresentationApp(App):
                 {"type": self.current_slide.__class__.__name__}
                 | self.current_slide.model_dump(),
             )
-            content_widget = self.slides[self.current_slide_index].render(app=self)
+            content_widget = self.current_slide.render(app=self)
             container_widget.mount(content_widget)
-            self.sub_title = f"{self.current_slide_index + 1} / {len(self.slides)}"
+            self.sub_title = (
+                f"{self.current_slide_index + 1} / {self.presentation.slides_count}"
+            )
 
             Path(".current_slide").write_text(str(self.current_slide_index))
         except QueryError:

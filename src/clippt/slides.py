@@ -27,11 +27,15 @@ from clippt.model import SlideModel
 
 
 class Slide(ABC, BaseModel):
+    """Abstract slide."""
+
     path: Path | None = None
     source: str = ""
     runnable: bool = False
+
     execute_before: str | None = None
     """Shell script to execute before the slide is rendered."""
+
     cwd: Path | None = None
 
     title: Optional[str] = None
