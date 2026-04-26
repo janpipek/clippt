@@ -1,6 +1,6 @@
 # clippt
 
-A command-line based presentation application.
+A command-line based presentation application (usable as a library too).
 
 ## Installation
 
@@ -8,14 +8,26 @@ A command-line based presentation application.
 uv tool install clippt
 ```
 
+Optíonal dependencies:
+
+```shell
+uv tool install clippt[data]    # For data slides
+uv tool install clippt[serve]   # Enable web server
+```
+
 ## Running
 
 ```
 Usage: clippt [OPTIONS] SOURCE
 
+  Run a presentation in the command-line.
+
 Options:
-  --disable-footer  Disable footer
-  -c, --continue    Continue from last slide.
+  -v, --verbose
+  -s, --serve     Start a web server
+  -c, --continue  Continue from last slide.
+  --no-header     Disable header.
+  --no-footer     Disable footer.
 ```
 
 ## Configuration

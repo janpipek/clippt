@@ -1,11 +1,11 @@
 ## List of examples
 
-- **clippt/presentation.toml** - A self-describing presentation
+- **clippt/presentation.toml** – A self-describing presentation
 
-- **fibonacci/presentation.toml** - Vibe-coded implementation of the fibonacci series in many languages to show the syntax-highlighting features
+- **fibonacci/presentation.toml** – Vibe-coded implementation of the fibonacci series in many languages to show the syntax-highlighting features
 
-- **fibonacci-inline.toml** - Version of the above, with all slides fully embedded in the configuration file.
+- **fibonacci-inline.toml** – Version of the above, with all slides fully embedded in the configuration file.
 
-- **run_presentation.py** - Example of how to run a presentation from a Python script.
+- **run_presentation.py** – Example of how to run a presentation from a Python script.
 
-- **execute_before.toml** - Example of how to execute code before a slide is displayed.
+- **execute_before.toml** – Example of how to execute code before a slide is displayed.
