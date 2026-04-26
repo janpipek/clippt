@@ -78,7 +78,7 @@ class Slide(ABC, BaseModel):
                     )
                 )
             else:
-                widgets.append(Markdown(f"# {self.title}", classes="slide-title"))
+                widgets.append(Static(self.title, classes="slide-title"))
         widgets.append(self._render_impl(app))
         if self.scrollbar in ["own", "none"]:
             if len(widgets) == 1:

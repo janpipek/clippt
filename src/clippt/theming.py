@@ -39,6 +39,21 @@ css_tweaks = """
             margin: 0;
         }
     }
+    Static.slide-title {
+        height: 1;
+        margin: 1;
+        padding: 0;
+        content-align: center middle;
+        color: $markdown-h1-color;
+        background: $markdown-h1-background;
+        text-style: $markdown-h1-text-style;        
+    } 
+    Markdown MarkdownH1 {
+        height: 1;
+        margin: 1 0;
+        padding: 0;
+        content-align: center middle;
+    }    
     MarkdownFence {
         margin: 1;
         max-height: 500;
