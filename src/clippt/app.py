@@ -6,7 +6,7 @@ from pathlib import Path
 import click
 import shellingham
 from textual.reactive import reactive
-from textual.app import App, ComposeResult, SystemCommand
+from textual.app import App, ComposeResult, SystemCommand, ScreenStackError
 from textual.containers import Container
 from textual.css.query import QueryError
 from textual.screen import Screen
@@ -177,7 +177,7 @@ class PresentationApp(App):
             )
 
             Path(".current_slide").write_text(str(self.slide_index))
-        except QueryError:
+        except (QueryError, ScreenStackError):
             pass
 
     def toggle_footer(self) -> None:
