@@ -16,7 +16,7 @@ from rich.panel import Panel
 from rich.text import Text
 from shellingham import detect_shell
 from textual.app import App
-from textual.containers import VerticalScroll
+from textual.containers import VerticalScroll, Vertical
 from textual.widget import Widget
 from textual.widgets import Markdown, Static
 from textual_fastdatatable import DataTable
@@ -40,6 +40,7 @@ class Slide(ABC, BaseModel):
 
     title: Optional[str] = None
     is_title_markdown: bool = False
+    scrollbar: Literal["own", "system", "none"] = "system"
 
     @model_validator(mode="after")
     def _load_on_start(self):
@@ -71,10 +72,19 @@ class Slide(ABC, BaseModel):
         widgets = []
         if self.title:
             if self.is_title_markdown:
-                widgets.append(Markdown(self.title))
+                widgets.append(
+                    Markdown(
+                        self.title,
+                    )
+                )
             else:
-                widgets.append(Markdown(f"# {self.title}"))
+                widgets.append(Markdown(f"# {self.title}", classes="slide-title"))
         widgets.append(self._render_impl(app))
+        if self.scrollbar in ["own", "none"]:
+            if len(widgets) == 1:
+                return widgets[0]
+            else:
+                return Vertical(*widgets)
         return VerticalScroll(*widgets, can_focus=False)
 
     @abstractmethod
@@ -365,6 +375,7 @@ class DataSlide(Slide):
     data: Optional[pl.DataFrame] = None
 
     model_config = {"arbitrary_types_allowed": True}
+    scrollbar: Literal["own"] = "own"
 
     def _render_impl(self, app: App) -> Widget:
         if self.data is not None:

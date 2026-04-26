@@ -28,6 +28,9 @@ css_tweaks = """
         dock: bottom;
         height: 1;
     }
+    DataTable {
+        height: 1fr;
+    }
     Header {
         height: 1;
     }
