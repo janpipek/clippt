@@ -25,6 +25,7 @@ class SlideModel(BaseModel):
     alt_screen: bool | None = None
     mode: Literal["code", "output"] | None = None
     runnable: bool | None = None
+    in_process: bool | None = None
     wait_for_key: bool | None = None
 
     classes: list[str] | None = None

@@ -1,6 +1,8 @@
 import io
 import os
 import subprocess
+import sys
+import tempfile
 import traceback
 from abc import ABC, abstractmethod
 from contextlib import redirect_stdout
@@ -198,6 +200,9 @@ class ExecutableSlide(CodeSlide, ABC):
     display_mode: Literal["code", "output"] = "code"
     """What is displayed - code or output."""
 
+    in_process: bool = False
+    """If true, run in-process (valid only for Python)."""
+
     alt_screen: bool = False
     """If true, run the code in an alternate, interactive screen."""
 
@@ -260,6 +265,8 @@ class PythonSlide(ExecutableSlide):
 
     language: Final[str] = "python"
 
+    in_process: bool = True
+
     def _exec_inline(self, app) -> str:
         f = io.StringIO()
         with redirect_stdout(f):
@@ -280,14 +287,10 @@ class PythonSlide(ExecutableSlide):
     def _exec(self, app: App) -> None:
         self.is_error = False
         try:
-            exec(
-                self.source,
-                globals=globals()
-                | {
-                    "WIDTH": app.size.width - (10 if self.title else 4),
-                    "HEIGHT": app.size.height - 2,
-                },
-            )
+            if self.in_process:
+                self._exec_in_process(app=app)
+            else:
+                self._exec_externally(app=app)
         except Exception:
             self.is_error = True
             raise
@@ -295,6 +298,33 @@ class PythonSlide(ExecutableSlide):
         # TODO: Rethink? Remnant of old project, 99% not needed.
         # import plotext as plt
         # plt.clear_figure()
+
+    def _exec_in_process(self, app: App) -> None:
+        exec(
+            self.source,
+            globals=globals()
+            | {
+                "WIDTH": app.size.width - (10 if self.title else 4),
+                "HEIGHT": app.size.height - 2,
+            },
+        )
+
+    def _exec_externally(self, app: App) -> None:
+        args = dict(
+            # capture_output=not self.alt_screen,
+            text=True,
+            encoding="utf-8",
+            cwd=self.cwd,
+        )
+
+        if self.path:
+            path = self.path.absolute()
+            subprocess.run([sys.executable, path], **args)
+        else:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                path = Path(tmpdir) / "slide.py"
+                path.write_text(self.source)
+                subprocess.run([sys.executable, path], **args)
 
 
 class ShellSlide(ExecutableSlide):
