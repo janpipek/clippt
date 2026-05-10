@@ -106,6 +106,7 @@ class PresentationApp(App):
 
     def on_resize(self) -> None:
         """Hook called when the app is resized."""
+        # TODO: Update only slides that need it.
         self._update_slide()
 
     @property
