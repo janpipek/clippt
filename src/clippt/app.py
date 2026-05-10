@@ -170,8 +170,10 @@ class PresentationApp(App):
                 {"type": self.current_slide.__class__.__name__}
                 | self.current_slide.model_dump(),
             )
-            columns = self.size.width - 10
-            rows = self.size.height - 2
+            columns = self.size.width - 2  # For scrollbar
+            rows = (
+                self.size.height - bool(self.enable_footer) - bool(self.enable_header)
+            )
             content_widget = self.current_slide.render(
                 app=self, columns=columns, rows=rows
             )

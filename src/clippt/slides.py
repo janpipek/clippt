@@ -243,6 +243,9 @@ class ExecutableSlide(CodeSlide, ABC):
                     self._exec_in_alternate_screen(app)
                     return self._render_code()
                 else:
+                    columns -= (
+                        3  # Margin of the output (+1 for occasional rendering bugs)
+                    )
                     output = self._exec_inline(app, columns=columns, rows=rows)
                     return self._render_output(output=output, app=app)
 
@@ -344,10 +347,7 @@ class ShellSlide(ExecutableSlide):
 
     def _exec_inline(self, app, *, columns: int, rows: int) -> str:
         if self._output is None:
-            with app.suspend():
-                self._output, self.is_error = self._exec_in_pseudo_terminal(
-                    columns, rows
-                )
+            self._output, self.is_error = self._exec_in_pseudo_terminal(columns, rows)
         return self._output
 
     def _exec_in_pseudo_terminal(self, columns: int, rows: int) -> tuple[str, bool]:
