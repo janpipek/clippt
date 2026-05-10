@@ -8,6 +8,11 @@ from io import StringIO
 from pathlib import Path
 from textwrap import dedent
 from typing import Callable, Final, Literal, Optional, Any
+import os
+import pty
+import fcntl
+import struct
+import termios
 
 import polars as pl
 from pydantic import BaseModel, model_validator
@@ -241,45 +246,39 @@ class ExecutableSlide(CodeSlide, ABC):
                     output = self._exec_inline(app, columns=columns, rows=rows)
                     return self._render_output(output=output, app=app)
 
-    @contextlib.contextmanager
-    def _override_terminal_env_vars(self, columns: int, rows: int):
-        """Try to configure the environment variables that the inline output fits on the slide.
-
-        This relies on the libraries/tools observing the env. vars.
-        """
-        with patch_environment(
-            {
-                "COLUMNS": str(columns),
-                "LINES": str(rows),
-                "FORCE_COLOR": "1",
-            }
-        ):
-            yield
+    @staticmethod
+    def _get_terminal_env_vars(columns: int, rows: int) -> dict:
+        return {
+            "COLUMNS": str(columns),
+            "LINES": str(rows),
+            "FORCE_COLOR": "1",
+        }
 
     def _render_output(self, *, output: str, app: App) -> Widget:
         classes = "error" if self.is_error else "output"
         return Static(Text.from_ansi(output + "\n"), classes=classes)
 
-    @abstractmethod
-    def _exec_inline(self, app: App, *, columns: int, rows: int) -> str:
-        """Execute the code and return the output."""
-
-    @abstractmethod
-    def _exec(self, app: App):
-        """Execute the code."""
-
     def run(self):
         self.display_mode = "output" if self.display_mode == "code" else "code"
 
-    def _exec_in_alternate_screen(self, app):
+    @contextlib.contextmanager
+    def _alternate_screen(self, app: App):
         with app.suspend():
             console = Console()
             console.clear()
-            self._exec(app)
+            yield
             if self.wait_for_key:
                 wait_for_key()
             self.display_mode = "code"
             console.clear()
+
+    @abstractmethod
+    def _exec_in_alternate_screen(self, app):
+        """Execute the code in an alternate screen."""
+
+    @abstractmethod
+    def _exec_inline(self, app: App, *, columns: int, rows: int) -> str:
+        """Execute the code and return the output."""
 
 
 class PythonSlide(ExecutableSlide):
@@ -292,36 +291,33 @@ class PythonSlide(ExecutableSlide):
 
     def _exec_inline(self, app, *, columns: int, rows: int) -> str:
         f = io.StringIO()
-        with self._override_terminal_env_vars(columns, rows):
+        with patch_environment(self._get_terminal_env_vars(columns, rows)):
             with redirect_stdout(f):
+                self.is_error = False
                 try:
-                    self._exec(app=app)
+                    exec(
+                        self.source,
+                        globals=globals()
+                        | {
+                            "WIDTH": columns,
+                            "HEIGHT": rows,
+                        },
+                    )
                     return f.getvalue()
                 except Exception as ex:
+                    self.is_error = True
                     out = StringIO()
                     out.write(f"Error: {ex}\n")
                     out.write("\n")
                     traceback.print_exception(ex, file=out)
                     return out.getvalue()
 
-    def _exec(self, app: App) -> None:
-        self.is_error = False
-        try:
+    def _exec_in_alternate_screen(self, app):
+        with self._alternate_screen(app=app):
             exec(
                 self.source,
                 globals=globals(),
-                # | {
-                #     "WIDTH": app.size.width - (10 if self.title else 4),
-                #     "HEIGHT": app.size.height - 2,
-                # },
             )
-        except Exception:
-            self.is_error = True
-            raise
-
-        # TODO: Rethink? Remnant of old project, 99% not needed.
-        # import plotext as plt
-        # plt.clear_figure()
 
 
 class ShellSlide(ExecutableSlide):
@@ -333,27 +329,60 @@ class ShellSlide(ExecutableSlide):
         if not self.source.strip():
             _, self.source = detect_shell()
 
-    def _exec(self, app: App):
-        env = None
-        return subprocess.run(
-            self.source.strip(),
-            shell=True,
-            capture_output=not self.alt_screen,
-            text=True,
-            encoding="utf-8",
-            cwd=self.cwd,
-            env=env,
-        )
+    def _exec_in_alternate_screen(self, app: App):
+        with self._alternate_screen(app=app):
+            env = None
+            return subprocess.run(
+                self.source.strip(),
+                shell=True,
+                capture_output=False,
+                text=True,
+                encoding="utf-8",
+                cwd=self.cwd,
+                env=env,
+            )
 
     def _exec_inline(self, app, *, columns: int, rows: int) -> str:
         if self._output is None:
-            with self._override_terminal_env_vars(columns, rows):
-                with app.suspend():
-                    p = self._exec(app)
-                    self._output = p.stdout or p.stderr
-                    # TODO: Maybe we should raise if it fails and handle it elsewhere
-                    self.is_error = p.returncode != 0
+            with app.suspend():
+                self._output, self.is_error = self._exec_in_pseudo_terminal(
+                    columns, rows
+                )
         return self._output
+
+    def _exec_in_pseudo_terminal(self, columns: int, rows: int) -> tuple[str, bool]:
+        # Assisted by Claude (a bit of magic)
+        master_fd, slave_fd = pty.openpty()
+
+        # Set the window size on the slave end so TIOCGWINSZ returns our value
+        winsize = struct.pack("HHHH", rows, columns, 0, 0)
+        fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, winsize)
+
+        attrs = termios.tcgetattr(slave_fd)
+        attrs[1] &= ~termios.ONLCR  # clear the nl→crnl output flag
+        termios.tcsetattr(slave_fd, termios.TCSANOW, attrs)
+
+        with patch_environment(self._get_terminal_env_vars(columns, rows)):
+            proc = subprocess.Popen(
+                self.source.strip(),
+                shell=True,
+                stdout=slave_fd,
+                stderr=slave_fd,
+                close_fds=True,
+                cwd=self.cwd,
+            )
+        os.close(slave_fd)
+
+        chunks = []
+        while True:
+            try:
+                chunks.append(os.read(master_fd, 4096))
+            except OSError:
+                break
+
+        proc.wait()
+        os.close(master_fd)
+        return b"".join(chunks).decode(), proc.returncode != 0
 
 
 class MarkdownSlide(Slide):
