@@ -8,11 +8,6 @@ from io import StringIO
 from pathlib import Path
 from textwrap import dedent
 from typing import Callable, Final, Literal, Optional, Any
-import os
-import pty
-import fcntl
-import struct
-import termios
 
 import polars as pl
 from pydantic import BaseModel, model_validator
@@ -27,7 +22,12 @@ from textual.widgets import Markdown, Static
 from textual_fastdatatable import DataTable
 from textual_fastdatatable.backend import PolarsBackend
 
-from clippt.utils import wait_for_key, patch_environment
+from clippt.utils import (
+    wait_for_key,
+    patch_environment,
+    get_terminal_env_vars,
+    exec_in_pseudo_terminal,
+)
 from clippt.model import SlideModel
 
 
@@ -249,14 +249,6 @@ class ExecutableSlide(CodeSlide, ABC):
                     output = self._exec_inline(app, columns=columns, rows=rows)
                     return self._render_output(output=output, app=app)
 
-    @staticmethod
-    def _get_terminal_env_vars(columns: int, rows: int) -> dict:
-        return {
-            "COLUMNS": str(columns),
-            "LINES": str(rows),
-            "FORCE_COLOR": "1",
-        }
-
     def _render_output(self, *, output: str, app: App) -> Widget:
         classes = "error" if self.is_error else "output"
         return Static(Text.from_ansi(output + "\n"), classes=classes)
@@ -294,7 +286,7 @@ class PythonSlide(ExecutableSlide):
 
     def _exec_inline(self, app, *, columns: int, rows: int) -> str:
         f = io.StringIO()
-        with patch_environment(self._get_terminal_env_vars(columns, rows)):
+        with patch_environment(get_terminal_env_vars(columns, rows)):
             with redirect_stdout(f):
                 self.is_error = False
                 try:
@@ -347,42 +339,10 @@ class ShellSlide(ExecutableSlide):
 
     def _exec_inline(self, app, *, columns: int, rows: int) -> str:
         if self._output is None:
-            self._output, self.is_error = self._exec_in_pseudo_terminal(columns, rows)
-        return self._output
-
-    def _exec_in_pseudo_terminal(self, columns: int, rows: int) -> tuple[str, bool]:
-        # Assisted by Claude (a bit of magic)
-        master_fd, slave_fd = pty.openpty()
-
-        # Set the window size on the slave end so TIOCGWINSZ returns our value
-        winsize = struct.pack("HHHH", rows, columns, 0, 0)
-        fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, winsize)
-
-        attrs = termios.tcgetattr(slave_fd)
-        attrs[1] &= ~termios.ONLCR  # clear the nl→crnl output flag
-        termios.tcsetattr(slave_fd, termios.TCSANOW, attrs)
-
-        with patch_environment(self._get_terminal_env_vars(columns, rows)):
-            proc = subprocess.Popen(
-                self.source.strip(),
-                shell=True,
-                stdout=slave_fd,
-                stderr=slave_fd,
-                close_fds=True,
-                cwd=self.cwd,
+            self._output, self.is_error = exec_in_pseudo_terminal(
+                command=self.source.strip(), cwd=self.cwd, columns=columns, rows=rows
             )
-        os.close(slave_fd)
-
-        chunks = []
-        while True:
-            try:
-                chunks.append(os.read(master_fd, 4096))
-            except OSError:
-                break
-
-        proc.wait()
-        os.close(master_fd)
-        return b"".join(chunks).decode(), proc.returncode != 0
+        return self._output
 
 
 class MarkdownSlide(Slide):
