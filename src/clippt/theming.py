@@ -28,9 +28,9 @@ css_tweaks: str = """
         max-height: 500;
     }
     Static.output {
-        margin: 0 3;
+        margin: 0 0;
         max-height: 500;
-        padding: 1 2;
+        padding: 1 1;
     }
     Static.error {
         background: #ffcccc;

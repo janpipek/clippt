@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-05-11
+
+### Changed
+- Shell commands now run inside a pseudo-terminal (PTY) so programs produce colored/ANSI output as if attached to a real terminal
+- Slides pass their actual dimensions (`columns` / `rows`) to child processes via `TIOCSWINSZ` and `COLUMNS`/`LINES` env vars, so width-aware tools render at the correct size
+- `exec_in_pseudo_terminal` extracted to `utils` with a Windows fallback using plain `subprocess`
+
 ## [0.3.2] - 2026-05-10
 
 ### Fixed
