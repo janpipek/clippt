@@ -69,7 +69,6 @@ class PresentationApp(App):
         if self.enable_header:
             yield Header()
         yield Container(
-            self.current_slide.render(app=self),
             id="content",  # , can_focus=False
         )
         if self.enable_footer:
@@ -171,7 +170,11 @@ class PresentationApp(App):
                 {"type": self.current_slide.__class__.__name__}
                 | self.current_slide.model_dump(),
             )
-            content_widget = self.current_slide.render(app=self)
+            columns = self.size.width - 10
+            rows = self.size.height - 2
+            content_widget = self.current_slide.render(
+                app=self, columns=columns, rows=rows
+            )
             container_widget.mount(content_widget)
             self.sub_title = (
                 f"{self.slide_index + 1} / {self.presentation.slides_count}"

@@ -1,5 +1,5 @@
+import contextlib
 import io
-import os
 import subprocess
 import traceback
 from abc import ABC, abstractmethod
@@ -22,7 +22,7 @@ from textual.widgets import Markdown, Static
 from textual_fastdatatable import DataTable
 from textual_fastdatatable.backend import PolarsBackend
 
-from clippt.utils import wait_for_key
+from clippt.utils import wait_for_key, patch_environment
 from clippt.model import SlideModel
 
 
@@ -40,7 +40,9 @@ class Slide(ABC, BaseModel):
 
     title: Optional[str] = None
     is_title_markdown: bool = False
+
     scrollbar: Literal["own", "system", "none"] = "system"
+    """Which scrollbars to show."""
 
     @model_validator(mode="after")
     def _load_on_start(self):
@@ -58,8 +60,16 @@ class Slide(ABC, BaseModel):
     def reload(self):
         self._load()
 
-    def render(self, app: App) -> Widget:
-        """Create the widgets representing the slide."""
+    def render(self, app: App, *, columns: int, rows: int) -> Widget:
+        """Create the widgets representing the slide.
+
+        Args:
+            app: The textual app rendering the slide (TODO: Change to Presentation app?
+            columns: The available number of columns (excluding any margins, scrollbars, etc.)
+            rows: The available number of physical rows (including the min. three lines for the title)
+
+        Note that
+        """
         if self.execute_before:
             subprocess.run(
                 self.execute_before.strip(),
@@ -71,6 +81,7 @@ class Slide(ABC, BaseModel):
             )
         widgets = []
         if self.title:
+            # TODO: We should not support this
             if self.is_title_markdown:
                 widgets.append(
                     Markdown(
@@ -78,9 +89,11 @@ class Slide(ABC, BaseModel):
                         classes="slide-title",
                     )
                 )
+                rows -= 3  # This is not correct
             else:
                 widgets.append(Markdown(f"# {self.title}", classes="slide-title"))
-        widgets.append(self._render_impl(app))
+                rows -= 3
+        widgets.append(self._render_impl(app, rows=rows, columns=columns))
         if self.scrollbar in ["own", "none"]:
             if len(widgets) == 1:
                 return widgets[0]
@@ -89,7 +102,7 @@ class Slide(ABC, BaseModel):
         return VerticalScroll(*widgets, can_focus=False)
 
     @abstractmethod
-    def _render_impl(self, app: App) -> Widget: ...
+    def _render_impl(self, app: App, *, columns: int, rows: int) -> Widget: ...
 
     def run(self) -> None:
         pass
@@ -168,10 +181,11 @@ class CodeSlide(Slide):
 
     language: str | None = None
 
-    def _render_impl(self, app) -> Widget:
+    def _render_impl(self, app, *, columns: int, rows: int) -> Widget:
         return self._render_code()
 
     def _render_code(self) -> Markdown:
+        # We do not need columns/rows, the Markdown widget properly formats itself
         if self.path:
             self.reload()
         code_lines = []
@@ -215,7 +229,7 @@ class ExecutableSlide(CodeSlide, ABC):
         self._output = None
         super()._load()
 
-    def _render_impl(self, app) -> Widget:
+    def _render_impl(self, app: App, *, columns: int, rows: int) -> Widget:
         match self.display_mode:
             case "code":
                 return self._render_code()
@@ -224,15 +238,30 @@ class ExecutableSlide(CodeSlide, ABC):
                     self._exec_in_alternate_screen(app)
                     return self._render_code()
                 else:
-                    output = self._exec_inline(app)
+                    output = self._exec_inline(app, columns=columns, rows=rows)
                     return self._render_output(output=output, app=app)
+
+    @contextlib.contextmanager
+    def _override_terminal_env_vars(self, columns: int, rows: int):
+        """Try to configure the environment variables that the inline output fits on the slide.
+
+        This relies on the libraries/tools observing the env. vars.
+        """
+        with patch_environment(
+            {
+                "COLUMNS": str(columns),
+                "LINES": str(rows),
+                "FORCE_COLOR": "1",
+            }
+        ):
+            yield
 
     def _render_output(self, *, output: str, app: App) -> Widget:
         classes = "error" if self.is_error else "output"
         return Static(Text.from_ansi(output + "\n"), classes=classes)
 
     @abstractmethod
-    def _exec_inline(self, app: App) -> str:
+    def _exec_inline(self, app: App, *, columns: int, rows: int) -> str:
         """Execute the code and return the output."""
 
     @abstractmethod
@@ -261,33 +290,30 @@ class PythonSlide(ExecutableSlide):
 
     language: Final[str] = "python"
 
-    def _exec_inline(self, app) -> str:
+    def _exec_inline(self, app, *, columns: int, rows: int) -> str:
         f = io.StringIO()
-        with redirect_stdout(f):
-            # TODO: Rethink? Remnant of old project, 99% not needed.
-            # import plotext as plt
-            # plt.plotsize(width=50, height=15)
-
-            try:
-                self._exec(app=app)
-                return f.getvalue()
-            except Exception as ex:
-                out = StringIO()
-                out.write(f"Error: {ex}\n")
-                out.write("\n")
-                traceback.print_exception(ex, file=out)
-                return out.getvalue()
+        with self._override_terminal_env_vars(columns, rows):
+            with redirect_stdout(f):
+                try:
+                    self._exec(app=app)
+                    return f.getvalue()
+                except Exception as ex:
+                    out = StringIO()
+                    out.write(f"Error: {ex}\n")
+                    out.write("\n")
+                    traceback.print_exception(ex, file=out)
+                    return out.getvalue()
 
     def _exec(self, app: App) -> None:
         self.is_error = False
         try:
             exec(
                 self.source,
-                globals=globals()
-                | {
-                    "WIDTH": app.size.width - (10 if self.title else 4),
-                    "HEIGHT": app.size.height - 2,
-                },
+                globals=globals(),
+                # | {
+                #     "WIDTH": app.size.width - (10 if self.title else 4),
+                #     "HEIGHT": app.size.height - 2,
+                # },
             )
         except Exception:
             self.is_error = True
@@ -307,10 +333,8 @@ class ShellSlide(ExecutableSlide):
         if not self.source.strip():
             _, self.source = detect_shell()
 
-    def _exec(self, app: App, columns: int | None = None):
+    def _exec(self, app: App):
         env = None
-        if columns is not None:
-            env = {**os.environ, "COLUMNS": str(columns)}
         return subprocess.run(
             self.source.strip(),
             shell=True,
@@ -321,17 +345,15 @@ class ShellSlide(ExecutableSlide):
             env=env,
         )
 
-    def _exec_inline(self, app) -> str:
+    def _exec_inline(self, app, *, columns: int, rows: int) -> str:
         if self._output is None:
-            # margin: 0 3 adds 6 chars of horizontal chrome; subtract so the
-            # command formats output to the exact displayable width.
-            columns = app.size.width - 10
-            with app.suspend():
-                p = self._exec(app, columns=columns)
-                self._output = p.stdout or p.stderr
-                # TODO: Maybe we should raise if it fails and handle it elsewhere
-                self.is_error = p.returncode != 0
-                self._executed = True
+            with self._override_terminal_env_vars(columns, rows):
+                with app.suspend():
+                    p = self._exec(app)
+                    self._output = p.stdout or p.stderr
+                    # TODO: Maybe we should raise if it fails and handle it elsewhere
+                    self.is_error = p.returncode != 0
+                    self._executed = True
         return self._output
 
 
@@ -340,14 +362,14 @@ class MarkdownSlide(Slide):
 
     classes: list[str] | None = None
 
-    def _render_impl(self, app: App) -> Markdown:
+    def _render_impl(self, app, *, columns: int, rows: int) -> Markdown:
         return Markdown(self.source, classes="slide " + " ".join(self.classes or []))
 
 
 class TextSlide(Slide):
     title: Optional[str] = None
 
-    def _render_impl(self, app: App) -> Static:
+    def _render_impl(self, app, *, columns: int, rows: int) -> Static:
         return Static(self.source)
 
 
@@ -358,7 +380,7 @@ class FuncSlide(Slide):
     source: str = ""  # ignored
     path: None = None  # ignored
 
-    def _render_impl(self, app: App) -> Widget:
+    def _render_impl(self, app, *, columns: int, rows: int) -> Widget:
         rendered = self.f(app)
         if isinstance(rendered, Widget):
             return rendered
@@ -378,7 +400,7 @@ class DataSlide(Slide):
     model_config = {"arbitrary_types_allowed": True}
     scrollbar: Literal["own"] = "own"
 
-    def _render_impl(self, app: App) -> Widget:
+    def _render_impl(self, app, *, columns: int, rows: int) -> Widget:
         if self.data is not None:
             backend = PolarsBackend.from_dataframe(self.data)
             dt = DataTable(backend=backend, zebra_stripes=True, show_cursor=False)
@@ -401,7 +423,7 @@ class DataSlide(Slide):
 class ErrorSlide(Slide):
     """Slide to display an error message."""
 
-    def _render_impl(self, app: App) -> Widget:
+    def _render_impl(self, app, *, columns: int, rows: int) -> Widget:
         return Static(Text.from_ansi(self.source), classes="error")
 
 
