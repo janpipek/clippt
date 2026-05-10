@@ -24,6 +24,10 @@ source = """
 path = "markdown.md"
 
 [[slides]]
+type = "markdown"
+source = "A slide without title."
+
+[[slides]]
 type = "python"
 source = "print(42)"
 title = """

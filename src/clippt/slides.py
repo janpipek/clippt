@@ -75,6 +75,7 @@ class Slide(ABC, BaseModel):
                 widgets.append(
                     Markdown(
                         self.title,
+                        classes="slide-title",
                     )
                 )
             else:
@@ -340,7 +341,7 @@ class MarkdownSlide(Slide):
     classes: list[str] | None = None
 
     def _render_impl(self, app: App) -> Markdown:
-        return Markdown(self.source, classes=" ".join(self.classes or []))
+        return Markdown(self.source, classes="slide " + " ".join(self.classes or []))
 
 
 class TextSlide(Slide):

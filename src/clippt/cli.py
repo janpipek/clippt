@@ -34,13 +34,35 @@ def clippt(*, source: Path, verbose: int, **kwargs):
     """Run a presentation in the command-line."""
     _apply_log_level(verbose)
     presentation = Presentation.from_path(source)
-    run_cli(
+    _run_cli(
         presentation=presentation,
         **kwargs,
     )
 
 
-def run_cli(
+def create_cli_command(presentation: Presentation):
+    """Create a CLI command for a concrete presentation.
+
+    Useful when using clippt as a library."""
+
+    def app(*, verbose: int, **kwargs):
+        _apply_log_level(verbose)
+        _run_cli(
+            presentation=presentation,
+            **kwargs,
+        )
+
+    app.__doc__ = (
+        f"""Present '{presentation.title}'."""
+        if presentation.title
+        else "Run the presentation"
+    )
+    app = common_options(app)
+    app = click.command()(app)
+    return app
+
+
+def _run_cli(
     *,
     presentation: Presentation,
     no_footer: bool,
@@ -77,28 +99,6 @@ def run_cli(
         server.serve()
     else:
         app.run()
-
-
-def create_cli_command(presentation: Presentation):
-    """Create a CLI command for a concrete presentation.
-
-    Useful when using clippt as a library."""
-
-    def app(*, verbose: int, **kwargs):
-        _apply_log_level(verbose)
-        run_cli(
-            presentation=presentation,
-            **kwargs,
-        )
-
-    app.__doc__ = (
-        f"""Present '{presentation.title}'."""
-        if presentation.title
-        else "Run the presentation"
-    )
-    app = common_options(app)
-    app = click.command()(app)
-    return app
 
 
 def _apply_log_level(verbose: int) -> None:

@@ -34,10 +34,10 @@ css_tweaks = """
     Header {
         height: 1;
     }
-    Markdown.title {
-        MarkdownFence {
-            margin: 0;
-        }
+    Markdown {
+      MarkdownH1 {
+        margin: 1 0;
+      }
     }
     MarkdownFence {
         margin: 1;
