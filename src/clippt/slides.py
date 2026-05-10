@@ -353,7 +353,6 @@ class ShellSlide(ExecutableSlide):
                     self._output = p.stdout or p.stderr
                     # TODO: Maybe we should raise if it fails and handle it elsewhere
                     self.is_error = p.returncode != 0
-                    self._executed = True
         return self._output
 
 
