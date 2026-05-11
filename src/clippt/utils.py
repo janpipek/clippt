@@ -75,9 +75,12 @@ def exec_in_pseudo_terminal(
             chunks = []
             while True:
                 try:
-                    chunks.append(os.read(master_fd, 4096))
+                    data = os.read(master_fd, 4096)
                 except OSError:
-                    break
+                    break  # Linux: EIO when slave is fully closed
+                if not data:
+                    break  # macOS/BSD: EOF (0 bytes) when slave is fully closed
+                chunks.append(data)
 
             proc.wait()
             os.close(master_fd)
