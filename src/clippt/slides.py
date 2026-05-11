@@ -174,7 +174,7 @@ class Slide(ABC, BaseModel):
 class EmptySlide(Slide):
     """Slide with no content."""
 
-    def _render_impl(self, app: App) -> Widget:
+    def _render_impl(self, app: App, *, columns: int, rows: int) -> Widget:
         return Markdown("")
 
 
@@ -357,7 +357,7 @@ class MarkdownSlide(Slide):
 class TextSlide(Slide):
     title: Optional[str] = None
 
-    def _render_impl(self, app, *, columns: int, rows: int) -> Static:
+    def _render_impl(self, app: App, *, columns: int, rows: int) -> Static:
         return Static(self.source)
 
 
@@ -411,7 +411,7 @@ class DataSlide(Slide):
 class ErrorSlide(Slide):
     """Slide to display an error message."""
 
-    def _render_impl(self, app, *, columns: int, rows: int) -> Widget:
+    def _render_impl(self, app: App, *, columns: int, rows: int) -> Widget:
         return Static(Text.from_ansi(self.source), classes="error")
 
 
