@@ -140,7 +140,7 @@ wheels = [
 
 [[package]]
 name = "clippt"
-version = "0.4.0"
+version = "0.4.1"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
