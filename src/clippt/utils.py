@@ -1,6 +1,7 @@
 import os
 import sys
 from contextlib import contextmanager
+import shellingham
 import subprocess
 from pathlib import Path
 
@@ -31,12 +32,15 @@ def wait_for_key():
 def exec_in_pseudo_terminal(
     *, command: str, cwd: Path | None, columns: int, rows: int
 ) -> tuple[str, bool]:
+    """Run a command in a pseudo-terminal and capture the output, including ANSI colours."""
+    command, shell = create_shell_command(command)
+
     match sys.platform:
         case "win32":
             with patch_environment(get_terminal_env_vars(columns, rows)):
                 proc = subprocess.run(
                     command,
-                    shell=True,
+                    shell=shell,
                     capture_output=True,
                     text=True,
                     encoding="utf-8",
@@ -64,7 +68,7 @@ def exec_in_pseudo_terminal(
             with patch_environment(get_terminal_env_vars(columns, rows)):
                 proc = subprocess.Popen(
                     command,
-                    shell=True,
+                    shell=shell,
                     stdout=slave_fd,
                     stderr=slave_fd,
                     close_fds=True,
@@ -90,7 +94,38 @@ def exec_in_pseudo_terminal(
             raise NotImplementedError("Not implemented for this platform.")
 
 
+def create_shell_command(command: str) -> tuple[list[str], bool]:
+    """Create a shell command list and shell flag based on the detected shell."""
+
+    # TODO: Perhaps we should force sh and create powershell as a separate slide type
+
+    command = command.strip()
+    shell_name, shell_path = shellingham.detect_shell()
+
+    match shell_name:
+        case 'pwsh' | 'powershell':
+            return [shell_path, '-Command', command], False
+        case 'bash' | 'zsh' | 'fish' | 'sh':
+            return [shell_path, '-c', command], False
+        case _:  # cmd, unknown
+            return [command], True
+
+
+def exec_in_alt_screen(
+    command: str, cwd: Path
+) -> None:
+    command, shell = create_shell_command(command)
+    subprocess.run(
+                command,
+                shell=shell,
+                capture_output=False,
+                text=True,
+                encoding="utf-8",
+                cwd=cwd,
+            )
+
 def get_terminal_env_vars(columns: int, rows: int) -> dict[str, str]:
+    """Get the terminal environment variables for the pseudoterminal columns and rows."""
     return {
         "COLUMNS": str(columns),
         "LINES": str(rows),

@@ -27,6 +27,7 @@ from clippt.utils import (
     patch_environment,
     get_terminal_env_vars,
     exec_in_pseudo_terminal,
+    exec_in_alt_screen,
 )
 from clippt.model import SlideModel
 
@@ -326,16 +327,8 @@ class ShellSlide(ExecutableSlide):
 
     def _exec_in_alternate_screen(self, app: App):
         with self._alternate_screen(app=app):
-            env = None
-            return subprocess.run(
-                self.source.strip(),
-                shell=True,
-                capture_output=False,
-                text=True,
-                encoding="utf-8",
-                cwd=self.cwd,
-                env=env,
-            )
+            exec_in_alt_screen(self.source, cwd=self.cwd)
+
 
     def _exec_inline(self, app, *, columns: int, rows: int) -> str:
         if self._output is None:
