@@ -33,16 +33,16 @@ def exec_in_pseudo_terminal(
 ) -> tuple[str, bool]:
     match sys.platform:
         case "win32":
-            proc = subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                cwd=cwd,
-                env=get_terminal_env_vars(columns, rows),
-            )
-            return proc.stdout or proc.stderr, proc.returncode != 0
+            with patch_environment(get_terminal_env_vars(columns, rows)):
+                proc = subprocess.run(
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    cwd=cwd,
+                )
+                return proc.stdout or proc.stderr, proc.returncode != 0
 
         case "linux" | "darwin":
             # Assisted by Claude (a bit of magic)
