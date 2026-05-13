@@ -63,6 +63,7 @@ class PresentationApp(App):
         self.shell_cwd = shell_cwd
         super().__init__(**kwargs)
         self.title = presentation.title
+        self.theme = kwargs.pop("theme", "textual-light")
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
@@ -97,11 +98,6 @@ class PresentationApp(App):
     def watch_slide_index(self, old_value: int, new_value: int) -> None:
         """Hook called when the current slide index changes"""
         self._update_slide()
-
-    def on_mount(self) -> None:
-        """Hook called when the app is mounted."""
-        # self.register_theme(my_theme)
-        self.theme = "textual-light"
 
     def on_resize(self) -> None:
         """Hook called when the app is resized."""

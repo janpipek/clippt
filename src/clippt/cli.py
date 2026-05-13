@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 import shlex
+from typing import Callable
 
 import click
 
@@ -8,7 +9,7 @@ from clippt.app import PresentationApp
 from clippt.presentation import Presentation
 
 
-def common_options(func):
+def common_options(func: Callable) -> Callable:
     func = click.option("--no-footer", is_flag=True, help="Disable footer.")(func)
     func = click.option("--no-header", is_flag=True, help="Disable header.")(func)
     func = click.option(
@@ -16,6 +17,7 @@ def common_options(func):
     )(func)
     func = click.option("--serve", "-s", is_flag=True, help="Start a web server")(func)
     func = click.option("-v", "--verbose", count=True)(func)
+    func = click.option("--theme", "-t", help="Theme to select")(func)
     return func
 
 
@@ -68,9 +70,12 @@ def _run_cli(
     no_footer: bool,
     no_header: bool,
     continue_: bool,
+    theme: str | None,
     serve: bool,
 ):
     app = PresentationApp(presentation=presentation)
+    if theme:
+        app.theme = theme
     app.enable_footer = not no_footer
     app.enable_header = not no_header
     if continue_ and Path(".current_slide").exists():
