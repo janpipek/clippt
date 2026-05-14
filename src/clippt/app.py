@@ -25,8 +25,8 @@ class PresentationApp(App):
     slide_index: reactive[int] = reactive(0, init=False)
     """Index of the current slide displayed (updates the view when set)."""
 
-    enable_footer: reactive[bool] = reactive(True, init=False, recompose=True)
-    enable_header: reactive[bool] = reactive(True, init=False, recompose=True)
+    enable_footer: reactive[bool] = reactive(True)
+    enable_header: reactive[bool] = reactive(True)
 
     BINDINGS = [
         ("pageup", "prev_slide", "Previous"),
@@ -67,13 +67,11 @@ class PresentationApp(App):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
-        if self.enable_header:
-            yield Header()
+        yield Header()
         yield Container(
             id="content",  # , can_focus=False
         )
-        if self.enable_footer:
-            yield Footer(show_command_palette=True)
+        yield Footer(show_command_palette=True)
 
     def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
         # Commands defined by textual
@@ -184,6 +182,8 @@ class PresentationApp(App):
 
     def toggle_footer(self) -> None:
         self.enable_footer = not self.enable_footer
+        self.query_one(Footer).display = self.enable_footer
 
     def toggle_header(self) -> None:
         self.enable_header = not self.enable_header
+        self.query_one(Header).display = self.enable_header
