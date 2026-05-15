@@ -11,7 +11,6 @@ uv tool install clippt
 Optíonal dependencies:
 
 ```shell
-uv tool install clippt[data]    # For data slides
 uv tool install clippt[serve]   # Enable web server
 ```
 
