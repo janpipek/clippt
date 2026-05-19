@@ -17,7 +17,6 @@ def wait_for_key():
 
             msvcrt.getch()
         case "linux" | "darwin":
-            # Test this works on mac
             import termios
             import tty
 
@@ -27,6 +26,8 @@ def wait_for_key():
                 os.read(sys.stdin.fileno(), 3).decode()
             finally:
                 termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+        case _:
+            raise NotImplementedError("Not implemented for this platform.")
 
 
 def exec_in_pseudo_terminal(
@@ -103,26 +104,26 @@ def create_shell_command(command: str) -> tuple[list[str], bool]:
     shell_name, shell_path = shellingham.detect_shell()
 
     match shell_name:
-        case 'pwsh' | 'powershell':
-            return [shell_path, '-Command', command], False
-        case 'bash' | 'zsh' | 'fish' | 'sh':
-            return [shell_path, '-c', command], False
+        case "pwsh" | "powershell":
+            return [shell_path, "-Command", command], False
+        case "bash" | "zsh" | "fish" | "sh":
+            return [shell_path, "-c", command], False
         case _:  # cmd, unknown
             return [command], True
 
 
-def exec_in_alt_screen(
-    command: str, cwd: Path
-) -> None:
+def exec_in_alt_screen(command: str, cwd: Path) -> None:
+    """Run a shell command in alternate screen."""
     command, shell = create_shell_command(command)
     subprocess.run(
-                command,
-                shell=shell,
-                capture_output=False,
-                text=True,
-                encoding="utf-8",
-                cwd=cwd,
-            )
+        command,
+        shell=shell,
+        capture_output=False,
+        text=True,
+        encoding="utf-8",
+        cwd=cwd,
+    )
+
 
 def get_terminal_env_vars(columns: int, rows: int) -> dict[str, str]:
     """Get the terminal environment variables for the pseudoterminal columns and rows."""
