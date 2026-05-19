@@ -6,7 +6,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
-from typing import Callable, Final, Literal, Optional, Any
+from typing import Callable, Final, Literal, Optional, Any, TYPE_CHECKING, final, Self
 
 import polars as pl
 from pydantic import BaseModel, model_validator
@@ -30,6 +30,9 @@ from clippt.utils import (
 )
 from clippt.model import SlideModel
 
+if TYPE_CHECKING:
+    from clippt.app import PresentationApp
+
 
 class Slide(ABC, BaseModel):
     """Abstract slide."""
@@ -47,11 +50,11 @@ class Slide(ABC, BaseModel):
     """Which scrollbars to show."""
 
     @model_validator(mode="after")
-    def _load_on_start(self):
+    def _load_on_start(self) -> Self:
         self._load()
         return self
 
-    def _load(self):
+    def _load(self) -> None:
         if self.path:
             try:
                 self.source = self.path.read_text(encoding="utf-8")
@@ -59,18 +62,23 @@ class Slide(ABC, BaseModel):
                 self.source = f"File not found: {self.path}."
                 self.runnable = False
 
-    def reload(self):
+    def reload(self) -> None:
         self._load()
 
-    def render(self, app: App, *, columns: int, rows: int) -> Widget:
+    @final
+    def render(self, app: "PresentationApp", *, columns: int, rows: int) -> Widget:
         """Create the widgets representing the slide.
 
         Args:
-            app: The textual app rendering the slide (TODO: Change to Presentation app?
+            app: The textual app rendering the slide
             columns: The available number of columns (excluding any margins, scrollbars, etc.)
             rows: The available number of physical rows (including the min. three lines for the title)
 
-        Note that
+        Returns:
+            A widget that will be rendered in the main area of the app.
+
+        Note:
+            This method is not meant to be overridden. Override `_render_impl` instead.
         """
         widgets = []
         if self.title:
@@ -95,66 +103,61 @@ class Slide(ABC, BaseModel):
         return VerticalScroll(*widgets, can_focus=False)
 
     @abstractmethod
-    def _render_impl(self, app: App, *, columns: int, rows: int) -> Widget: ...
+    def _render_impl(
+        self, app: "PresentationApp", *, columns: int, rows: int
+    ) -> Widget:
+        """Render the widget with the actual slide content.
 
-    def run(self) -> None:
+        It does not need the title (if defined) or any scrollbar.
+        """
+        ...
+
+    def toggle_output(self) -> None:
+        """Switch between the source and output (if supported)"""
         pass
 
     @staticmethod
-    def from_model(
-        s: SlideModel, *, base_path: Path | None = None, cwd: Path | None = None
-    ) -> "Slide":
+    def from_model(s: SlideModel, *, base_path: Path | None = None) -> "Slide":
         if not base_path:
             base_path = Path(".")
-        if not cwd:
-            cwd = base_path
         if s.path:
             # TODO: Check it is properly relative
             full_path = base_path / s.path
             return load_slide(
                 path=full_path,
-                cwd=cwd,
-                **s.model_dump(exclude_none=True, exclude={"type", "path", "cwd"}),
+                **s.model_dump(exclude_none=True, exclude={"type", "path"}),
             )
         else:
             match s.type:
                 case "python":
                     return PythonSlide(
-                        cwd=cwd, **s.model_dump(exclude_none=True, exclude={"type"})
+                        **s.model_dump(exclude_none=True, exclude={"type"})
                     )
                 case "shell":
                     return ShellSlide(
-                        cwd=cwd,
-                        **s.model_dump(exclude_none=True, exclude={"type", "cwd"}),
+                        **s.model_dump(exclude_none=True, exclude={"type"}),
                     )
                 case "markdown":
                     return MarkdownSlide(
-                        cwd=cwd,
                         **s.model_dump(
                             exclude_none=True,
-                            exclude={"type", "title", "language", "cwd"},
+                            exclude={"type", "title", "language"},
                         ),
                     )
                 case "code":
                     return CodeSlide(
-                        cwd=cwd,
-                        **s.model_dump(exclude_none=True, exclude={"type", "cwd"}),
+                        **s.model_dump(exclude_none=True, exclude={"type"}),
                     )
                 case None:
                     if not s.source:
-                        return EmptySlide(
-                            cwd=cwd, **s.model_dump(exclude_none=True, exclude={"cwd"})
-                        )
+                        return EmptySlide(**s.model_dump(exclude_none=True))
                     elif s.language:
-                        return CodeSlide(
-                            cwd=cwd, **s.model_dump(exclude_none=True, exclude={"cwd"})
-                        )
+                        return CodeSlide(**s.model_dump(exclude_none=True))
                     else:
                         return MarkdownSlide(
-                            cwd=cwd,
                             **s.model_dump(
                                 exclude_none=True,
-                                exclude={"title", "language", "cwd"},
+                                exclude={"title", "language"},
                             ),
                         )
 
@@ -162,7 +165,9 @@ class Slide(ABC, BaseModel):
 class EmptySlide(Slide):
     """Slide with no content."""
 
-    def _render_impl(self, app: App, *, columns: int, rows: int) -> Widget:
+    def _render_impl(
+        self, app: "PresentationApp", *, columns: int, rows: int
+    ) -> Widget:
         return Markdown("")
 
 
@@ -174,7 +179,9 @@ class CodeSlide(Slide):
 
     language: str | None = None
 
-    def _render_impl(self, app, *, columns: int, rows: int) -> Widget:
+    def _render_impl(
+        self, app: "PresentationApp", *, columns: int, rows: int
+    ) -> Widget:
         return self._render_code()
 
     def _render_code(self) -> Markdown:
@@ -222,7 +229,9 @@ class ExecutableSlide(CodeSlide, ABC):
         self._output = None
         super()._load()
 
-    def _render_impl(self, app: App, *, columns: int, rows: int) -> Widget:
+    def _render_impl(
+        self, app: "PresentationApp", *, columns: int, rows: int
+    ) -> Widget:
         match self.display_mode:
             case "code":
                 return self._render_code()
@@ -237,15 +246,15 @@ class ExecutableSlide(CodeSlide, ABC):
                     output = self._exec_inline(app, columns=columns, rows=rows)
                     return self._render_output(output=output, app=app)
 
-    def _render_output(self, *, output: str, app: App) -> Widget:
+    def _render_output(self, *, output: str, app: "PresentationApp") -> Widget:
         classes = "error" if self.is_error else "output"
         return Static(Text.from_ansi(output + "\n"), classes=classes)
 
-    def run(self):
+    def toggle_output(self):
         self.display_mode = "output" if self.display_mode == "code" else "code"
 
     @contextlib.contextmanager
-    def _alternate_screen(self, app: App):
+    def _alternate_screen(self, app: "PresentationApp"):
         with app.suspend():
             console = Console()
             console.clear()
@@ -256,11 +265,11 @@ class ExecutableSlide(CodeSlide, ABC):
             console.clear()
 
     @abstractmethod
-    def _exec_in_alternate_screen(self, app):
+    def _exec_in_alternate_screen(self, app: "PresentationApp"):
         """Execute the code in an alternate screen."""
 
     @abstractmethod
-    def _exec_inline(self, app: App, *, columns: int, rows: int) -> str:
+    def _exec_inline(self, app: "PresentationApp", *, columns: int, rows: int) -> str:
         """Execute the code and return the output."""
 
 
@@ -272,7 +281,7 @@ class PythonSlide(ExecutableSlide):
 
     language: Final[str] = "python"
 
-    def _exec_inline(self, app, *, columns: int, rows: int) -> str:
+    def _exec_inline(self, app: "PresentationApp", *, columns: int, rows: int) -> str:
         f = io.StringIO()
         with patch_environment(get_terminal_env_vars(columns, rows)):
             with redirect_stdout(f):
@@ -295,7 +304,7 @@ class PythonSlide(ExecutableSlide):
                     traceback.print_exception(ex, file=out)
                     return out.getvalue()
 
-    def _exec_in_alternate_screen(self, app):
+    def _exec_in_alternate_screen(self, app: "PresentationApp"):
         with self._alternate_screen(app=app):
             exec(
                 self.source,
@@ -312,14 +321,17 @@ class ShellSlide(ExecutableSlide):
         if not self.source.strip():
             _, self.source = detect_shell()
 
-    def _exec_in_alternate_screen(self, app: App):
+    def _exec_in_alternate_screen(self, app: "PresentationApp"):
         with self._alternate_screen(app=app):
-            exec_in_alt_screen(self.source, cwd=self.cwd)
+            exec_in_alt_screen(self.source, app.working_dir)
 
-    def _exec_inline(self, app, *, columns: int, rows: int) -> str:
+    def _exec_inline(self, app: "PresentationApp", *, columns: int, rows: int) -> str:
         if self._output is None:
             self._output, self.is_error = exec_in_pseudo_terminal(
-                command=self.source.strip(), cwd=self.cwd, columns=columns, rows=rows
+                command=self.source.strip(),
+                cwd=app.working_dir,
+                columns=columns,
+                rows=rows,
             )
         return self._output
 
@@ -329,14 +341,18 @@ class MarkdownSlide(Slide):
 
     classes: list[str] | None = None
 
-    def _render_impl(self, app, *, columns: int, rows: int) -> Markdown:
+    def _render_impl(
+        self, app: "PresentationApp", *, columns: int, rows: int
+    ) -> Markdown:
         return Markdown(self.source, classes="slide " + " ".join(self.classes or []))
 
 
 class TextSlide(Slide):
     title: Optional[str] = None
 
-    def _render_impl(self, app: App, *, columns: int, rows: int) -> Static:
+    def _render_impl(
+        self, app: "PresentationApp", *, columns: int, rows: int
+    ) -> Static:
         return Static(self.source)
 
 
@@ -347,7 +363,9 @@ class FuncSlide(Slide):
     source: str = ""  # ignored
     path: None = None  # ignored
 
-    def _render_impl(self, app, *, columns: int, rows: int) -> Widget:
+    def _render_impl(
+        self, app: "PresentationApp", *, columns: int, rows: int
+    ) -> Widget:
         rendered = self.f(app)
         if isinstance(rendered, Widget):
             return rendered
@@ -367,7 +385,9 @@ class DataSlide(Slide):
     model_config = {"arbitrary_types_allowed": True}
     scrollbar: Literal["own"] = "own"
 
-    def _render_impl(self, app, *, columns: int, rows: int) -> Widget:
+    def _render_impl(
+        self, app: "PresentationApp", *, columns: int, rows: int
+    ) -> Widget:
         if self.data is not None:
             backend = PolarsBackend.from_dataframe(self.data)
             dt = DataTable(backend=backend, zebra_stripes=True, show_cursor=False)
@@ -390,7 +410,9 @@ class DataSlide(Slide):
 class ErrorSlide(Slide):
     """Slide to display an error message."""
 
-    def _render_impl(self, app: App, *, columns: int, rows: int) -> Widget:
+    def _render_impl(
+        self, app: "PresentationApp", *, columns: int, rows: int
+    ) -> Widget:
         return Static(Text.from_ansi(self.source), classes="error")
 
 

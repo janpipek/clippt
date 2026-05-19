@@ -42,13 +42,12 @@ class PresentationApp(App):
 
     CSS = css_tweaks
 
-    shell_cwd: Path | None = None
+    working_dir: Path = Path(".")
+    """Directory in which commands and scripts are executed."""
 
     def __init__(
         self,
         presentation: Presentation,
-        *,
-        shell_cwd: Path | None = None,
         **kwargs,
     ):
         if not presentation.slides:
@@ -60,8 +59,8 @@ class PresentationApp(App):
         else:
             self.presentation = presentation
 
-        self.shell_cwd = shell_cwd
         super().__init__(**kwargs)
+        self.working_dir = self.presentation.slide_base_path
         self.title = presentation.title
         self.theme = kwargs.pop("theme", "textual-light")
 
@@ -110,7 +109,9 @@ class PresentationApp(App):
         """Run a shell in the alternate screen"""
         with self.suspend():
             _, shell = shellingham.detect_shell()
-            subprocess.run(shell, shell=True, capture_output=False, cwd=self.shell_cwd)
+            subprocess.run(
+                shell, shell=True, capture_output=False, cwd=self.working_dir
+            )
 
     def action_reload(self) -> None:
         """Reload current slide"""
@@ -145,9 +146,12 @@ class PresentationApp(App):
         self._update_slide()
 
     def action_run(self) -> None:
-        """Execute the current slide's code and display output"""
+        """Toggle between the source code and output.
+
+        This causes any executable slide to run.
+        """
         if self.current_slide.runnable:
-            self.current_slide.run()
+            self.current_slide.toggle_output()
             self._update_slide()
             # No need to refresh() - update_slide() handles the refresh
 

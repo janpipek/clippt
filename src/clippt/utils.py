@@ -17,7 +17,6 @@ def wait_for_key():
 
             msvcrt.getch()
         case "linux" | "darwin":
-            # Test this works on mac
             import termios
             import tty
 
@@ -27,6 +26,8 @@ def wait_for_key():
                 os.read(sys.stdin.fileno(), 3).decode()
             finally:
                 termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+        case _:
+            raise NotImplementedError("Not implemented for this platform.")
 
 
 def exec_in_pseudo_terminal(
@@ -112,6 +113,7 @@ def create_shell_command(command: str) -> tuple[list[str], bool]:
 
 
 def exec_in_alt_screen(command: str, cwd: Path) -> None:
+    """Run a shell command in alternate screen."""
     command, shell = create_shell_command(command)
     subprocess.run(
         command,
