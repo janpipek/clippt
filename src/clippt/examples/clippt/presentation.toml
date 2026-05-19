@@ -40,11 +40,13 @@ ls -la
 """
 title = "Example: Runnable shell slide"
 
-
-
 [[slides]]
 path = "planets.csv"
 title = "Example: data slide"
+
+[[slides]]
+path = "trees.jpg"
+title = "Example: image slide"
 
 [[slides]]
 path = "non-existent.py"
