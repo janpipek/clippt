@@ -28,8 +28,6 @@ class SlideModel(BaseModel):
     wait_for_key: bool | None = None
 
     classes: list[str] | None = None
-    cwd: Path | None = None
-    execute_before: str | None = None
 
 
 class PresentationModel(BaseModel):

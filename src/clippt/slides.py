@@ -1,6 +1,5 @@
 import contextlib
 import io
-import subprocess
 import traceback
 from abc import ABC, abstractmethod
 from contextlib import redirect_stdout
@@ -39,9 +38,6 @@ class Slide(ABC, BaseModel):
     source: str = ""
     runnable: bool = False
 
-    execute_before: str | None = None
-    """Shell script to execute before the slide is rendered."""
-
     cwd: Path | None = None
 
     title: Optional[str] = None
@@ -76,15 +72,6 @@ class Slide(ABC, BaseModel):
 
         Note that
         """
-        if self.execute_before:
-            subprocess.run(
-                self.execute_before.strip(),
-                shell=True,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                cwd=self.cwd,
-            )
         widgets = []
         if self.title:
             # TODO: We should not support this
@@ -328,7 +315,6 @@ class ShellSlide(ExecutableSlide):
     def _exec_in_alternate_screen(self, app: App):
         with self._alternate_screen(app=app):
             exec_in_alt_screen(self.source, cwd=self.cwd)
-
 
     def _exec_inline(self, app, *, columns: int, rows: int) -> str:
         if self._output is None:
