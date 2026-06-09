@@ -25,8 +25,8 @@ class PresentationApp(App):
     slide_index: reactive[int] = reactive(0, init=False)
     """Index of the current slide displayed (updates the view when set)."""
 
-    enable_footer: reactive[bool] = reactive(True, init=False, recompose=True)
-    enable_header: reactive[bool] = reactive(True, init=False, recompose=True)
+    enable_footer: reactive[bool] = reactive(True)
+    enable_header: reactive[bool] = reactive(True)
 
     BINDINGS = [
         ("pageup", "prev_slide", "Previous"),
@@ -42,13 +42,12 @@ class PresentationApp(App):
 
     CSS = css_tweaks
 
-    shell_cwd: Path | None = None
+    working_dir: Path = Path(".")
+    """Directory in which commands and scripts are executed."""
 
     def __init__(
         self,
         presentation: Presentation,
-        *,
-        shell_cwd: Path | None = None,
         **kwargs,
     ):
         if not presentation.slides:
@@ -60,20 +59,18 @@ class PresentationApp(App):
         else:
             self.presentation = presentation
 
-        self.shell_cwd = shell_cwd
         super().__init__(**kwargs)
+        self.working_dir = self.presentation.slide_base_path
         self.title = presentation.title
+        self.theme = kwargs.pop("theme", "textual-light")
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
-        if self.enable_header:
-            yield Header()
+        yield Header()
         yield Container(
-            self.current_slide.render(app=self),
             id="content",  # , can_focus=False
         )
-        if self.enable_footer:
-            yield Footer(show_command_palette=True)
+        yield Footer(show_command_palette=True)
 
     def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
         # Commands defined by textual
@@ -99,13 +96,9 @@ class PresentationApp(App):
         """Hook called when the current slide index changes"""
         self._update_slide()
 
-    def on_mount(self) -> None:
-        """Hook called when the app is mounted."""
-        # self.register_theme(my_theme)
-        self.theme = "textual-light"
-
     def on_resize(self) -> None:
         """Hook called when the app is resized."""
+        # TODO: Update only slides that need it.
         self._update_slide()
 
     @property
@@ -116,7 +109,9 @@ class PresentationApp(App):
         """Run a shell in the alternate screen"""
         with self.suspend():
             _, shell = shellingham.detect_shell()
-            subprocess.run(shell, shell=True, capture_output=False, cwd=self.shell_cwd)
+            subprocess.run(
+                shell, shell=True, capture_output=False, cwd=self.working_dir
+            )
 
     def action_reload(self) -> None:
         """Reload current slide"""
@@ -151,9 +146,12 @@ class PresentationApp(App):
         self._update_slide()
 
     def action_run(self) -> None:
-        """Execute the current slide's code and display output"""
+        """Toggle between the source code and output.
+
+        This causes any executable slide to run.
+        """
         if self.current_slide.runnable:
-            self.current_slide.run()
+            self.current_slide.toggle_output()
             self._update_slide()
             # No need to refresh() - update_slide() handles the refresh
 
@@ -170,7 +168,13 @@ class PresentationApp(App):
                 {"type": self.current_slide.__class__.__name__}
                 | self.current_slide.model_dump(),
             )
-            content_widget = self.current_slide.render(app=self)
+            columns = self.size.width - 2  # For scrollbar
+            rows = (
+                self.size.height - bool(self.enable_footer) - bool(self.enable_header)
+            )
+            content_widget = self.current_slide.render(
+                app=self, columns=columns, rows=rows
+            )
             container_widget.mount(content_widget)
             self.sub_title = (
                 f"{self.slide_index + 1} / {self.presentation.slides_count}"
@@ -182,6 +186,8 @@ class PresentationApp(App):
 
     def toggle_footer(self) -> None:
         self.enable_footer = not self.enable_footer
+        self.query_one(Footer).display = self.enable_footer
 
     def toggle_header(self) -> None:
         self.enable_header = not self.enable_header
+        self.query_one(Header).display = self.enable_header

@@ -25,19 +25,22 @@ path = "markdown.md"
 
 [[slides]]
 type = "python"
-source = "print(42)"
-title = """
-Example: A runnable Python slide
+source = """
+# Press "." to run the code.
 
-Press "." to run the code.
-"""
+print(42)"""
+title = "Example: A runnable Python slide"
 
 [[slides]]
 type = "shell"
-source = "ls -la"
-title = """Example: Runnable shell slide
+source = """
+# Press "." to run the code.
 
-Press "." to run the code."""
+ls -la
+"""
+title = "Example: Runnable shell slide"
+
+
 
 [[slides]]
 path = "planets.csv"

@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2026-05-15
+
+### Fixed
+- Examples were using optional data dependencies. Reverted back to mandatory.
+
+## [0.4.3] - 2026-05-13
+
+### Added
+- Enable theme selection in the constructor of the app + as --theme CLI flag
+
+## [0.4.2] - 2026-05-13
+
+### Fixed
+- Shell working better in Windows
+
+## [0.4.1] - 2026-05-12
+
+### Fixed
+- Inline shell commands work in MacOS
+
+## [0.4.0] - 2026-05-11
+
+### Changed
+- Shell commands now run inside a pseudo-terminal (PTY) so programs produce colored/ANSI output as if attached to a real terminal
+- Slides pass their actual dimensions (`columns` / `rows`) to child processes via `TIOCSWINSZ` and `COLUMNS`/`LINES` env vars, so width-aware tools render at the correct size
+- `exec_in_pseudo_terminal` extracted to `utils` with a Windows fallback using plain `subprocess`
+
+## [0.3.2] - 2026-05-10
+
+### Fixed
+- Too much space above slide title
+
+## [0.3.1] - 2026-05-10
+
+### Fixed
+- `--continue` flag no longer broken after the Presentation refactor
+- Part of the DataTable slide was hidden; now fully visible
+
+## [0.3.0] - 2026-04-26
+
+### Added
+- `create_cli_command()` — build a custom Click command from a `Presentation` instance for embedding clippt in your own CLI
+- `--no-header` / `--no-footer` CLI flags to hide the header/footer bars
+- Data presentation example (`examples/data/`) using a CSV file
+
+
 ## [0.2.0] - 2026-04-17
 ### Changed
 - Introduce Presentation and rename the models to ...Model
