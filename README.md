@@ -2,10 +2,12 @@
 
 A command-line based presentation application (usable as a library too).
 
+[![asciicast](https://asciinema.org/a/BgCyrT1B8Z6CghWs.svg)](https://asciinema.org/a/BgCyrT1B8Z6CghWs)
+
 ## Installation
 
 ```shell
-uv tool install clippt
+uv tool install clippt  
 ```
 
 Optíonal dependencies:
