@@ -53,10 +53,8 @@ class PresentationApp(App):
         **kwargs,
     ):
         if not presentation.slides:
-            self.presentation = Presentation(
-                slides=[
-                    ErrorSlide(source="**Error**: Empty presentation"),
-                ]
+            self.presentation = presentation.model_copy(
+                update={"slides": [ErrorSlide(source="No slide in the presentation.")]}
             )
         else:
             self.presentation = presentation
