@@ -32,6 +32,15 @@ print(42)"""
 title = "Example: A runnable Python slide"
 
 [[slides]]
+type = "python"
+title = "Example: A Python slide running automatically"
+source = """
+for y in range(HEIGHT - 3):
+    print ("#" * WIDTH)
+"""
+display_mode = "output"
+
+[[slides]]
 type = "shell"
 source = """
 # Press "." to run the code.
@@ -39,8 +48,6 @@ source = """
 ls -la
 """
 title = "Example: Runnable shell slide"
-
-
 
 [[slides]]
 path = "planets.csv"

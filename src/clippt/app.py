@@ -38,6 +38,8 @@ class PresentationApp(App):
         ("home", "first_slide", "First"),
         ("end", "last_slide", "Last"),
         ("ctrl+o", "shell", "Shell"),
+        ("h", "toggle_header", "Toggle header"),
+        ("f", "toggle_footer", "Toggle footer"),
     ]
 
     CSS = css_tweaks
@@ -82,15 +84,8 @@ class PresentationApp(App):
             if attr_name in self.__class__.__dict__:
                 attr = getattr(self, attr_name)
                 if callable(attr):
-                    yield SystemCommand(action[2], attr.__doc__, attr)
-
-        # A few extra commands
-        yield SystemCommand(
-            "Toggle header", "Show / hide the application header", self.toggle_header
-        )
-        yield SystemCommand(
-            "Toggle footer", "Show / hide the application footer", self.toggle_footer
-        )
+                    doc = attr.__doc__.splitlines()[0].rstrip(".")
+                    yield SystemCommand(action[2], doc, attr)
 
     def watch_slide_index(self, old_value: int, new_value: int) -> None:
         """Hook called when the current slide index changes"""
@@ -184,10 +179,12 @@ class PresentationApp(App):
         except (QueryError, ScreenStackError):
             pass
 
-    def toggle_footer(self) -> None:
+    def action_toggle_footer(self) -> None:
+        """Show / hide the application footer"""
         self.enable_footer = not self.enable_footer
         self.query_one(Footer).display = self.enable_footer
 
-    def toggle_header(self) -> None:
+    def action_toggle_header(self) -> None:
+        """Show / hide the application header"""
         self.enable_header = not self.enable_header
         self.query_one(Header).display = self.enable_header

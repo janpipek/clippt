@@ -23,7 +23,7 @@ class SlideModel(BaseModel):
     """Language to be used for syntax highlighting."""
 
     alt_screen: bool | None = None
-    mode: Literal["code", "output"] | None = None
+    display_mode: Literal["code", "output"] | None = None
     runnable: bool | None = None
     wait_for_key: bool | None = None
 
