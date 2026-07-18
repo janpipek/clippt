@@ -20,6 +20,9 @@ from textual.widget import Widget
 from textual.widgets import Markdown, Static
 from textual_fastdatatable import DataTable
 from textual_fastdatatable.backend import PolarsBackend
+from textual_image.widget import UnicodeImage
+from PIL.ImageFile import ImageFile
+from PIL import Image
 
 from clippt.utils import (
     wait_for_key,
@@ -48,6 +51,8 @@ class Slide(ABC, BaseModel):
 
     scrollbar: Literal["own", "system", "none"] = "system"
     """Which scrollbars to show."""
+
+    model_config = {"arbitrary_types_allowed": True}
 
     @model_validator(mode="after")
     def _load_on_start(self) -> Self:
@@ -407,6 +412,19 @@ class DataSlide(Slide):
                     raise NotImplementedError()
 
 
+class ImageSlide(Slide):
+    image: ImageFile | None = None
+
+    def _render_impl(
+        self, app: "PresentationApp", *, columns: int, rows: int
+    ) -> Widget:
+        return UnicodeImage(self.image)
+
+    def _load(self) -> None:
+        assert isinstance(self.path, Path)
+        self.image = Image.open(self.path)
+
+
 class ErrorSlide(Slide):
     """Slide to display an error message."""
 
@@ -419,7 +437,7 @@ class ErrorSlide(Slide):
 def load_slide(path: str | Path, **kwargs) -> Slide:
     """Load a slide from an external file."""
     path = Path(path)
-    match path.suffix:
+    match path.suffix.lower():
         case ".py":
             return PythonSlide(path=path, **kwargs)
         case ".md":
@@ -428,6 +446,8 @@ def load_slide(path: str | Path, **kwargs) -> Slide:
             return DataSlide(path=path, **kwargs)
         case ".txt":
             return TextSlide(path=path, **kwargs)
+        case ".png" | ".jpeg" | ".jpg" | ".gif":
+            return ImageSlide(path=path, **kwargs)
         case other:
             language = kwargs.pop("language", EXT_LANGUAGE_MAPPING.get(other, "text"))
             return CodeSlide(path=path, language=language, **kwargs)

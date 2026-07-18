@@ -12,6 +12,8 @@ dependencies = [
     "textual>=7.5.0",
     "textual-fastdatatable>=0.14.0",
     "polars>=1.38.1",
+    "textual-image>=0.12.0",
+    "pillow>=12.2.0",
 ]
 authors = [{name = "Jan Pipek", email = "jan.pipek@gmail.com"}]
 license = "MIT"
