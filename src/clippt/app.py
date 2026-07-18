@@ -66,11 +66,15 @@ class PresentationApp(App):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
-        yield Header()
+        header = Header()
+        header.display = self.enable_header
+        yield header
         yield Container(
             id="content",  # , can_focus=False
         )
-        yield Footer(show_command_palette=True)
+        footer = Footer(show_command_palette=True)
+        footer.display = self.enable_footer
+        yield footer
 
     def get_system_commands(self, screen: Screen) -> Iterable[SystemCommand]:
         # Commands defined by textual
