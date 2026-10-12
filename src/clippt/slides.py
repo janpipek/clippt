@@ -8,7 +8,16 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Callable, Final, Literal, Optional, Any, TYPE_CHECKING, final, Self
 
-import polars as pl
+try:
+    import polars as pl
+    from polars import DataFrame
+    from textual_fastdatatable.backend import PolarsBackend
+    DATA_BACKEND: Literal["polars", "pandas"] = "polars"
+except ImportError:
+    import pandas as pd
+    from pandas import DataFrame
+    from textual_fastdatatable.backend import ArrowBackend
+    DATA_BACKEND = "pandas"
 from pydantic import BaseModel, model_validator
 from rich.console import Console
 from rich.panel import Panel
@@ -19,7 +28,6 @@ from textual.containers import VerticalScroll, Vertical
 from textual.widget import Widget
 from textual.widgets import Markdown, Static
 from textual_fastdatatable import DataTable
-from textual_fastdatatable.backend import PolarsBackend
 
 from clippt.utils import (
     wait_for_key,
@@ -380,7 +388,7 @@ class FuncSlide(Slide):
 class DataSlide(Slide):
     """Slide containing data displayed as a table."""
 
-    data: Optional[pl.DataFrame] = None
+    data: DataFrame | None = None
 
     model_config = {"arbitrary_types_allowed": True}
     scrollbar: Literal["own"] = "own"
@@ -389,7 +397,10 @@ class DataSlide(Slide):
         self, app: "PresentationApp", *, columns: int, rows: int
     ) -> Widget:
         if self.data is not None:
-            backend = PolarsBackend.from_dataframe(self.data)
+            if DATA_BACKEND == "polars":
+                backend = PolarsBackend.from_dataframe(self.data)
+            else:
+                backend = ArrowBackend.from_pandas(self.data)
             dt = DataTable(backend=backend, zebra_stripes=True, show_cursor=False)
             dt.can_focus = False
             return dt
@@ -400,9 +411,15 @@ class DataSlide(Slide):
         if self.path:
             match self.path.suffix:
                 case ".csv":
-                    self.data = pl.read_csv(self.path)
+                    if DATA_BACKEND == "polars":
+                        self.data = pl.read_csv(self.path)
+                    else:
+                        self.data = pd.read_csv(self.path)
                 case ".pq" | ".parquet":
-                    self.data = pl.read_parquet(self.path)
+                    if DATA_BACKEND == "polars":
+                        self.data = pl.read_parquet(self.path)
+                    else:
+                        self.data = pd.read_parquet(self.path)
                 case _:
                     raise NotImplementedError()
 
