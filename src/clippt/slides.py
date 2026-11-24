@@ -6,7 +6,30 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
-from typing import Callable, Final, Literal, Optional, Any, TYPE_CHECKING, final, Self
+from typing import TYPE_CHECKING, Any, Callable, Final, Literal, Optional, Self, final
+
+from PIL import Image
+from PIL.ImageFile import ImageFile
+from pydantic import BaseModel, model_validator
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from shellingham import detect_shell
+from textual.app import App
+from textual.containers import Vertical, VerticalScroll
+from textual.widget import Widget
+from textual.widgets import Markdown, Static
+from textual_fastdatatable import DataTable
+from textual_image.widget import Image as ImageWidget
+
+from clippt.model import SlideModel
+from clippt.utils import (
+    exec_in_alt_screen,
+    exec_in_pseudo_terminal,
+    get_terminal_env_vars,
+    patch_environment,
+    wait_for_key,
+)
 
 try:
     import polars as pl
@@ -20,29 +43,7 @@ except ImportError:
     from textual_fastdatatable.backend import ArrowBackend
 
     DATA_BACKEND = "pandas"
-from pydantic import BaseModel, model_validator
-from rich.console import Console
-from rich.panel import Panel
-from rich.text import Text
-from shellingham import detect_shell
-from textual.app import App
-from textual.containers import VerticalScroll, Vertical
-from textual.widget import Widget
-from textual.widgets import Markdown, Static
-from textual_fastdatatable import DataTable
-from textual_fastdatatable.backend import PolarsBackend
-from textual_image.widget import UnicodeImage
-from PIL.ImageFile import ImageFile
-from PIL import Image
 
-from clippt.utils import (
-    wait_for_key,
-    patch_environment,
-    get_terminal_env_vars,
-    exec_in_pseudo_terminal,
-    exec_in_alt_screen,
-)
-from clippt.model import SlideModel
 
 if TYPE_CHECKING:
     from clippt.app import PresentationApp
@@ -438,7 +439,8 @@ class ImageSlide(Slide):
     def _render_impl(
         self, app: "PresentationApp", *, columns: int, rows: int
     ) -> Widget:
-        return UnicodeImage(self.image)
+        return ImageWidget(self.image)
+        # return UnicodeImage(self.image)
 
     def _load(self) -> None:
         assert isinstance(self.path, Path)

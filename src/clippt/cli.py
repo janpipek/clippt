@@ -1,6 +1,6 @@
-from pathlib import Path
-import sys
 import shlex
+import sys
+from pathlib import Path
 from typing import Callable
 
 import click

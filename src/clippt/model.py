@@ -1,11 +1,12 @@
 """Static description of the presentation as pydantic models."""
 
-from pydantic import BaseModel, Field
+import io
+import json
+import tomllib
 from pathlib import Path
 from typing import Literal
-import io
-import tomllib
-import json
+
+from pydantic import BaseModel, Field
 
 
 class SlideModel(BaseModel):

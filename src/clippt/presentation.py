@@ -3,10 +3,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 from clippt.model import PresentationModel, SlideModel
-from clippt.slides import (
-    Slide,
-    load_slide,
-)
+from clippt.slides import Slide, load_slide
 
 
 class Presentation(BaseModel):

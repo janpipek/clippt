@@ -5,16 +5,16 @@ from pathlib import Path
 
 import click
 import shellingham
-from textual.reactive import reactive
-from textual.app import App, ComposeResult, SystemCommand, ScreenStackError
+from textual.app import App, ComposeResult, ScreenStackError, SystemCommand
 from textual.containers import Container
 from textual.css.query import QueryError
+from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widgets import Footer, Header
 
-from clippt.slides import Slide, ErrorSlide
-from clippt.theming import css_tweaks
 from clippt.presentation import Presentation
+from clippt.slides import ErrorSlide, Slide
+from clippt.theming import css_tweaks
 
 
 class PresentationApp(App):

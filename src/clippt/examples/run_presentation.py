@@ -1,12 +1,9 @@
-from io import StringIO
+from textual.widgets import Digits
 
+from clippt.cli import create_cli_command
 from clippt.model import PresentationModel
-from clippt.app import PresentationApp
 from clippt.presentation import Presentation
 from clippt.slides import FuncSlide
-from clippt.cli import create_cli_command
-
-from textual.widgets import Digits
 
 PRESENTATION = {
     "title": "My Presentation",
