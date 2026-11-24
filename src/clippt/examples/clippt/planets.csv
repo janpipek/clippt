@@ -1,9 +1,9 @@
-Symbol,Name
-☿,Mercury
-♀,Venus
-🜨,Earth
-♂,Mars
-♃,Jupiter
-♄,Saturn
-⛢,Uranus
-♆,Neptune
+Symbol,Name,Orbital Period (yr),Radius (km)
+☿,Mercury,0.24,2440
+♀,Venus,0.62,6052
+🜨,Earth,1.0,6378
+♂,Mars,1.88,3396
+♃,Jupiter,11.86,69911
+♄,Saturn,29.46,60268
+⛢,Uranus,84.02,25362
+♆,Neptune,164.8,24622
