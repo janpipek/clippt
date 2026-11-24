@@ -2,11 +2,12 @@ import contextlib
 import io
 import traceback
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable, Final, Literal, Optional, Self, final
+from typing import TYPE_CHECKING, Any, Final, Literal, Self, final
 
 from PIL import Image
 from PIL.ImageFile import ImageFile
@@ -58,7 +59,7 @@ class Slide(ABC, BaseModel):
 
     cwd: Path | None = None
 
-    title: Optional[str] = None
+    title: str | None = None
     is_title_markdown: bool = False
 
     scrollbar: Literal["own", "system", "none"] = "system"
@@ -304,7 +305,7 @@ class PythonSlide(ExecutableSlide):
             with redirect_stdout(f):
                 self.is_error = False
                 try:
-                    exec(
+                    exec(  # noqa: S102
                         self.source,
                         globals=globals()
                         | {
@@ -323,7 +324,7 @@ class PythonSlide(ExecutableSlide):
 
     def _exec_in_alternate_screen(self, app: "PresentationApp"):
         with self._alternate_screen(app=app):
-            exec(
+            exec(  # noqa: S102
                 self.source,
                 globals=globals(),
             )
@@ -365,7 +366,7 @@ class MarkdownSlide(Slide):
 
 
 class TextSlide(Slide):
-    title: Optional[str] = None
+    title: str | None = None
 
     def _render_impl(
         self, app: "PresentationApp", *, columns: int, rows: int
@@ -407,9 +408,9 @@ class DataSlide(Slide):
     ) -> Widget:
         if self.data is not None:
             if DATA_BACKEND == "polars":
-                backend = PolarsBackend.from_dataframe(self.data)
+                backend = PolarsBackend.from_dataframe(self.data)  # type: ignore
             else:
-                backend = ArrowBackend.from_pandas(self.data)
+                backend = ArrowBackend.from_pandas(self.data)  # type: ignore
             dt = DataTable(backend=backend, zebra_stripes=True, show_cursor=False)
             dt.can_focus = False
             return dt
