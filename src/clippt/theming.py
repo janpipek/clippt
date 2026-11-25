@@ -54,5 +54,8 @@ css_tweaks: str = """
         max-height: 500;
         padding: 1 2;
     }
+    .image-slide {
+        align: center middle;
+    }
 """
 """Additional CSS styling for the presentation app."""

@@ -10,6 +10,10 @@ example-zen:
 example-fibonacci:
     uv run clippt src/clippt/examples/fibonacci
 
+# Example gallery
+example-gallery:
+    uv run src/clippt/examples/run_gallery.py
+
 # Show the presentation about clippt itself
 demo:
     uv run clippt src/clippt/examples/clippt

@@ -1,11 +1,11 @@
 import os
+import subprocess
 import sys
 from contextlib import contextmanager
-import shellingham
-import subprocess
 from pathlib import Path
 
 import rich
+import shellingham
 
 
 def wait_for_key():
@@ -51,10 +51,10 @@ def exec_in_pseudo_terminal(
 
         case "linux" | "darwin":
             # Assisted by Claude (a bit of magic)
-            import termios
-            import struct
             import fcntl
             import pty
+            import struct
+            import termios
 
             master_fd, slave_fd = pty.openpty()
 

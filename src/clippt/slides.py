@@ -2,41 +2,49 @@ import contextlib
 import io
 import traceback
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
-from typing import Callable, Final, Literal, Optional, Any, TYPE_CHECKING, final, Self
+from typing import TYPE_CHECKING, Any, Final, Literal, Self, final
 
-try:
-    import polars as pl
-    from polars import DataFrame
-    from textual_fastdatatable.backend import PolarsBackend
-    DATA_BACKEND: Literal["polars", "pandas"] = "polars"
-except ImportError:
-    import pandas as pd
-    from pandas import DataFrame
-    from textual_fastdatatable.backend import ArrowBackend
-    DATA_BACKEND = "pandas"
+from PIL import Image
+from PIL.ImageFile import ImageFile
 from pydantic import BaseModel, model_validator
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 from shellingham import detect_shell
 from textual.app import App
-from textual.containers import VerticalScroll, Vertical
+from textual.containers import Vertical, VerticalScroll, Container
 from textual.widget import Widget
 from textual.widgets import Markdown, Static
 from textual_fastdatatable import DataTable
+from textual_image.widget import Image as ImageWidget
 
-from clippt.utils import (
-    wait_for_key,
-    patch_environment,
-    get_terminal_env_vars,
-    exec_in_pseudo_terminal,
-    exec_in_alt_screen,
-)
 from clippt.model import SlideModel
+from clippt.utils import (
+    exec_in_alt_screen,
+    exec_in_pseudo_terminal,
+    get_terminal_env_vars,
+    patch_environment,
+    wait_for_key,
+)
+
+try:
+    import polars as pl
+    from polars import DataFrame
+    from textual_fastdatatable.backend import PolarsBackend
+
+    DATA_BACKEND: Literal["polars", "pandas"] = "polars"
+except ImportError:
+    import pandas as pd
+    from pandas import DataFrame
+    from textual_fastdatatable.backend import ArrowBackend
+
+    DATA_BACKEND = "pandas"
+
 
 if TYPE_CHECKING:
     from clippt.app import PresentationApp
@@ -51,11 +59,13 @@ class Slide(ABC, BaseModel):
 
     cwd: Path | None = None
 
-    title: Optional[str] = None
+    title: str | None = None
     is_title_markdown: bool = False
 
     scrollbar: Literal["own", "system", "none"] = "system"
     """Which scrollbars to show."""
+
+    model_config = {"arbitrary_types_allowed": True}
 
     @model_validator(mode="after")
     def _load_on_start(self) -> Self:
@@ -295,7 +305,7 @@ class PythonSlide(ExecutableSlide):
             with redirect_stdout(f):
                 self.is_error = False
                 try:
-                    exec(
+                    exec(  # noqa: S102
                         self.source,
                         globals=globals()
                         | {
@@ -314,7 +324,7 @@ class PythonSlide(ExecutableSlide):
 
     def _exec_in_alternate_screen(self, app: "PresentationApp"):
         with self._alternate_screen(app=app):
-            exec(
+            exec(  # noqa: S102
                 self.source,
                 globals=globals(),
             )
@@ -356,7 +366,7 @@ class MarkdownSlide(Slide):
 
 
 class TextSlide(Slide):
-    title: Optional[str] = None
+    title: str | None = None
 
     def _render_impl(
         self, app: "PresentationApp", *, columns: int, rows: int
@@ -398,9 +408,9 @@ class DataSlide(Slide):
     ) -> Widget:
         if self.data is not None:
             if DATA_BACKEND == "polars":
-                backend = PolarsBackend.from_dataframe(self.data)
+                backend = PolarsBackend.from_dataframe(self.data)  # type: ignore
             else:
-                backend = ArrowBackend.from_pandas(self.data)
+                backend = ArrowBackend.from_pandas(self.data)  # type: ignore
             dt = DataTable(backend=backend, zebra_stripes=True, show_cursor=False)
             dt.can_focus = False
             return dt
@@ -424,6 +434,22 @@ class DataSlide(Slide):
                     raise NotImplementedError()
 
 
+class ImageSlide(Slide):
+    image: ImageFile | None = None
+
+    def _render_impl(
+        self, app: "PresentationApp", *, columns: int, rows: int
+    ) -> Widget:
+        w = ImageWidget(self.image)
+        w.styles.width = "auto"
+        w.styles.height = "auto"
+        return Container(w, classes="image-slide")
+
+    def _load(self) -> None:
+        assert isinstance(self.path, Path)
+        self.image = Image.open(self.path)
+
+
 class ErrorSlide(Slide):
     """Slide to display an error message."""
 
@@ -436,7 +462,7 @@ class ErrorSlide(Slide):
 def load_slide(path: str | Path, **kwargs) -> Slide:
     """Load a slide from an external file."""
     path = Path(path)
-    match path.suffix:
+    match path.suffix.lower():
         case ".py":
             return PythonSlide(path=path, **kwargs)
         case ".md":
@@ -445,6 +471,8 @@ def load_slide(path: str | Path, **kwargs) -> Slide:
             return DataSlide(path=path, **kwargs)
         case ".txt":
             return TextSlide(path=path, **kwargs)
+        case ".png" | ".jpeg" | ".jpg" | ".gif":
+            return ImageSlide(path=path, **kwargs)
         case other:
             language = kwargs.pop("language", EXT_LANGUAGE_MAPPING.get(other, "text"))
             return CodeSlide(path=path, language=language, **kwargs)
