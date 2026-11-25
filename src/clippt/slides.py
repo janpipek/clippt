@@ -440,8 +440,10 @@ class ImageSlide(Slide):
     def _render_impl(
         self, app: "PresentationApp", *, columns: int, rows: int
     ) -> Widget:
-        return ImageWidget(self.image)
-        # return UnicodeImage(self.image)
+        w = ImageWidget(self.image)
+        w.styles.width = "auto"
+        w.styles.height = "auto"
+        return w
 
     def _load(self) -> None:
         assert isinstance(self.path, Path)
