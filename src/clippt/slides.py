@@ -17,7 +17,7 @@ from rich.panel import Panel
 from rich.text import Text
 from shellingham import detect_shell
 from textual.app import App
-from textual.containers import Vertical, VerticalScroll
+from textual.containers import Vertical, VerticalScroll, Container
 from textual.widget import Widget
 from textual.widgets import Markdown, Static
 from textual_fastdatatable import DataTable
@@ -443,7 +443,7 @@ class ImageSlide(Slide):
         w = ImageWidget(self.image)
         w.styles.width = "auto"
         w.styles.height = "auto"
-        return w
+        return Container(w, classes="image-slide")
 
     def _load(self) -> None:
         assert isinstance(self.path, Path)
