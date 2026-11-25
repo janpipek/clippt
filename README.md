@@ -4,6 +4,17 @@ A command-line based presentation application (usable as a library too).
 
 [![asciicast](https://asciinema.org/a/BgCyrT1B8Z6CghWs.svg)](https://asciinema.org/a/BgCyrT1B8Z6CghWs)
 
+## Features
+
+- A TUI for walking through slides.
+- TOML definition of the presentation. 
+- Rich types of slides
+  - Markdown
+  - Source code (runnable!)
+  - Data tables (support for HUGE files)
+  - Images (via the [kitty protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/))
+  - User-defined slides
+
 ## Installation
 
 ```shell
